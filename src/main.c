@@ -37,8 +37,14 @@ volatile unsigned char dayOfTheWeek;
 volatile unsigned char month;
 volatile unsigned char year;
 volatile unsigned char blinkDot;
-
+volatile unsigned char show = 0;
+volatile unsigned int set = 0;
+volatile unsigned char blickCounter = 0;
 volatile uint8_t digits[4];
+
+enum {set_none = 0, set_hour, set_minute, set_day, set_month, set_year};
+enum {show_time = 0, show_date, show_year};
+
 
 void Print(uint16_t num);
 void SevenSegment(uint8_t n, uint8_t dp);
@@ -46,13 +52,14 @@ void read(unsigned char position);
 void write(unsigned char value, unsigned char position);
 void timer0start(void);
 void timer1start(void);
+void timer1stop(void);
 
 void portConfig(void) {
     // Port c[3,2,1,0] as out put
     DDRC  = 0xff;
     PORTC = 0x00;
 
-    DDRB = 0xff;
+    DDRB  = 0b11111100;
     PORTB = 0x00;
 
     // Port D
@@ -102,6 +109,14 @@ void getTime() {
     readSecond();
 }
 
+unsigned int debounce(volatile uint8_t *port, uint8_t pin) {
+    if (!(*port & (1 << pin))) {
+        _delay_ms(200);
+        return 1;
+    }
+    return 0;
+}
+
 int main() {
 
     // global interupt enable
@@ -125,17 +140,106 @@ int main() {
     /*
      * Real time clock configuration
      */
-    write(14, year_RTC);        // 00-99
-    write(7, month_RTC);
-    write(0, dayOfTheWeek_RTC); // 0 Mo, 1 Tu, ...
-    write(28, day_RTC);
-    write(0, hour_RTC);        // Bohuzel PCF8563 umoznuje mit den s 32hodinami:-)
-    write(0, minute_RTC);
-    write(0, second_RTC);
+    //write(14, year_RTC);        // 00-99
+    //write(7, month_RTC);
+    //write(0, dayOfTheWeek_RTC); // 0 Mo, 1 Tu, ...
+    //write(28, day_RTC);
+    //write(0, hour_RTC);        // Bohuzel PCF8563 umoznuje mit den s 32hodinami:-)
+    //write(0, minute_RTC);
+    //write(0, second_RTC);
 
     getTime();
 
     while(1) {
+        if (debounce(&PINB, PB0)) {
+            if (set) {
+                timer1stop();
+                switch (show) {
+                case show_time:
+                    if(set == set_minute) {
+                        minute++;
+                        if (minute > 59) {
+                            minute = 0;
+                        }
+                        write(minute, minute_RTC);
+                    }
+                    if(set == set_hour) {
+                        hour++;
+                        if (hour > 23) {
+                            hour = 0;
+                        }
+                        write(hour, hour_RTC);
+                    }
+                    break;
+                case show_date:
+                    if(set == set_day) {
+                        day++;
+                        if (day > 31) {
+                            day = 1;
+                        }
+                        write(day, day_RTC);
+                    }
+                    if(set == set_month) {
+                        month++;
+                        if (month > 12) {
+                            month = 1;
+                        }
+                        write(month, month_RTC);
+                    }
+                    break;
+                case show_year:
+                    if(set == set_year) {
+                        year++;
+                        if (year > 99) {
+                            year = 1;
+                        }
+                        write(year, year_RTC);
+                    }
+                    break;
+                }
+                timer1start();
+
+
+            } else {
+                show++;
+                if (show == show_date) {
+                    readDate();
+                }
+                if (show == show_year) {
+                    readYear();
+                }
+            }
+            if (show == 3) show = show_time;
+        }
+
+        if (debounce(&PINB, PB1)) {
+            set++;
+
+            // read date, set date
+            if (set == set_day) {
+                readDate();
+                show = show_date;
+            }
+            if (set == set_month) {
+                readDate();
+                show = show_date;
+            }
+            if (set == set_year) {
+                readYear();
+                show = show_year;
+            }
+
+            if (set == 6) {
+                set = set_none;
+                show = show_time;
+            }
+        }
+
+        if (set) {
+            PORTB |= (1 << PB2);
+        } else {
+            PORTB &= ~(1 << PB2);
+        }
     }
 
     return 0;
@@ -160,15 +264,68 @@ ISR(TIMER1_OVF_vect) {
 
 ISR(TIMER0_OVF_vect) {
     int disp;
-    disp = (hour * 100) + minute;
-    //disp = (minute * 100) + second;
+
+    switch (show) {
+    case show_time:
+        disp = (hour * 100) + minute;
+        break;
+    case show_date:
+        disp = (day * 100) + month;
+        break;
+    case show_year:
+        disp = year + 2000;
+        break;
+    default:
+        disp = (hour * 100) + minute;
+    }
+
     Print(disp);
 
     PORTC &= ~(1 << PC0);
     PORTC &= ~(1 << PC1);
     PORTC &= ~(1 << PC2);
     PORTC &= ~(1 << PC3);
-    PORTC |= (1 << i);
+
+    if (set == set_hour || set == set_day) {
+        blickCounter++;
+
+        if (i == 3 || i == 2) {
+            if (blickCounter > 100) {
+                PORTC |= (1 << i);
+                if (blickCounter == 200) {
+                    blickCounter = 0;
+                }
+            }
+        } else {
+            PORTC |= (1 << i);
+        }
+
+        // blinking minute
+    } else if (set == set_minute || set == set_month) {
+        blickCounter++;
+
+        if (i == 1 || i == 0) {
+            if (blickCounter > 100) {
+                PORTC |= (1 << i);
+                if (blickCounter == 200) {
+                    blickCounter = 0;
+                }
+            }
+        } else {
+            PORTC |= (1 << i);
+        }
+
+    } else if (set == set_year) {
+        blickCounter++;
+        if (blickCounter > 100) {
+            PORTC |= (1 << i);
+            if (blickCounter == 200) {
+                blickCounter = 0;
+            }
+        }
+    } else {
+        PORTC |= (1 << i);
+    }
 
     if (blinkDot && i == 2) {
         SevenSegment(digits[i], 1);
@@ -211,6 +368,11 @@ void timer1start(void) {
     TIMSK1 |= (1 << TOIE1);  // Enable Overflow Interrupt Enable
     TCNT1 = 0;              // Initialize Counter
 }
+
+void timer1stop(void) {
+    TIMSK1 &= ~(1 << TOIE1);  // Disable Overflow Interrupt Enable
+}
+
 
 void Print(uint16_t num) {
 
