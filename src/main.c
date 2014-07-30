@@ -1,20 +1,11 @@
-#include    <avr/io.h>
-#include    <stdio.h>
-#include    <util/delay.h>
-#include    <avr/interrupt.h>
-#include    "twimaster.h"
-//#include    "uart.h"
-
-#define  PCF_addr         0xA2    // PCF8563 address
-#define  I2C_READ         1       // PCF8563 read
-#define  I2C_WRITE        0       // PCF8563 write
-#define  second_RTC       0x02
-#define  minute_RTC       0x03
-#define  hour_RTC         0x04
-#define  day_RTC          0x05
-#define  dayOfTheWeek_RTC 0x06
-#define  month_RTC        0x07
-#define  year_RTC         0x08
+#include <avr/io.h>
+#include <stdio.h>
+#include <util/delay.h>
+#include <avr/interrupt.h>
+#include "twimaster.h"
+#include "rtc8563.h"
+#include <avr/eeprom.h>
+//#include "uart.h"
 
 #define SEVEN_SEGMENT_PORT PORTD
 #define SEVEN_SEGMENT_DDR DDRD
@@ -22,100 +13,51 @@
 #define true 1
 #define false 0
 
+#define SWITCH_CYCLES 4
+#define DIGITS 4
+
 volatile uint8_t i = 0;
 
-char buffer[30];
-
-// promenny pro RTC
-volatile unsigned int  BCD;
-volatile unsigned char second;
-volatile unsigned char oldSecond;
-volatile unsigned char minute;
-volatile unsigned char hour;
-volatile unsigned char day;
-volatile unsigned char dayOfTheWeek;
-volatile unsigned char month;
-volatile unsigned char year;
-volatile unsigned char blinkDot;
+volatile unsigned char showDot;
 volatile unsigned char show = 0;
 volatile unsigned int set = 0;
 volatile unsigned char blickCounter = 0;
-volatile uint8_t digits[4];
+volatile uint8_t digits[DIGITS];
 
-enum {set_none = 0, set_hour, set_minute, set_day, set_month, set_year};
-enum {show_time = 0, show_date, show_year};
+volatile uint8_t on[SWITCH_CYCLES];
+volatile uint8_t off[SWITCH_CYCLES];
 
+volatile unsigned int pos;
+
+enum {
+    set_none = 0,
+    set_first,
+    set_second,
+    set_both
+};
+
+enum {
+    show_time = 0,
+    show_date,
+    show_year,
+    show_onTime1,
+    show_offTime1,
+    show_onTime2,
+    show_offTime2,
+    show_end
+};
+
+unsigned int debounce(volatile uint8_t *port, uint8_t pin);
 
 void Print(uint16_t num);
 void SevenSegment(uint8_t n, uint8_t dp);
-void read(unsigned char position);
-void write(unsigned char value, unsigned char position);
+
 void timer0start(void);
 void timer1start(void);
 void timer1stop(void);
+void portConfig(void);
 
-void portConfig(void) {
-    // Port c[3,2,1,0] as out put
-    DDRC  = 0xff;
-    PORTC = 0x00;
-
-    DDRB  = 0b11111100;
-    PORTB = 0x00;
-
-    // Port D
-    SEVEN_SEGMENT_DDR=0xff;
-
-    // Turn off all segments
-    SEVEN_SEGMENT_PORT=0xff;
-}
-
-void readSecond() {
-    read(second_RTC);                               // cte sekundy z RTC
-    second = ((((BCD & 0b01111111) & 0xf0) >> 4) * 10 + (BCD & 0x0f)) ;
-}
-
-void readMinute() {
-    read(minute_RTC);                                // cte minuty z RTC
-    minute = ((((BCD & 0b01111111) & 0xf0) >> 4) * 10 + (BCD & 0x0f));
-}
-
-void readHour() {
-    read(hour_RTC);                                // cte hodiny z RTC
-    hour = ((((BCD & 0b00111111) & 0xf0) >> 4) * 10 + (BCD & 0x0f));
-}
-
-void readYear() {
-    read(year_RTC);
-    year = (((BCD & 0xf0) >> 4) * 10 + (BCD & 0x0f)); // read and format years
-}
-
-void readDate() {
-    read(day_RTC);                                        // cte dny z RTC
-    day = ((((BCD & 0b00111111) & 0xf0) >> 4) * 10 + (BCD & 0x0f));
-
-    read(month_RTC);                                // cte mesice z RTC
-    month = ((((BCD & 0b10011111) & 0xf0) >> 4) * 10 + (BCD & 0x0f));
-}
-
-void getTime() {
-    readYear();
-    readDate();
-
-    read(dayOfTheWeek_RTC);                                      // cte tydny z RTC
-    dayOfTheWeek = BCD & 0b00000111;
-
-    readHour();
-    readMinute();
-    readSecond();
-}
-
-unsigned int debounce(volatile uint8_t *port, uint8_t pin) {
-    if (!(*port & (1 << pin))) {
-        _delay_ms(200);
-        return 1;
-    }
-    return 0;
-}
+void readDataFromEeprom();
 
 int main() {
 
@@ -137,33 +79,39 @@ int main() {
     // aprox. 4x per second
     timer1start();
 
-    /*
-     * Real time clock configuration
-     */
-    //write(14, year_RTC);        // 00-99
-    //write(7, month_RTC);
-    //write(0, dayOfTheWeek_RTC); // 0 Mo, 1 Tu, ...
-    //write(28, day_RTC);
-    //write(0, hour_RTC);        // Bohuzel PCF8563 umoznuje mit den s 32hodinami:-)
-    //write(0, minute_RTC);
-    //write(0, second_RTC);
+    // read Epprom
+    readDataFromEeprom();
 
+    // read time from RTC
     getTime();
 
+    //UART_puts("onhour:");
+    //UART_puti(on[0]);
+    //UART_puts(" onmin:");
+    //UART_puti(on[1]);
+    //
+    //UART_puts(" offhour:");
+    //UART_puti(off[0]);
+    //UART_puts(" offhour:");
+    //UART_puti(off[1]);
+    //UART_puts("\n");
+
     while(1) {
+
         if (debounce(&PINB, PB0)) {
+
             if (set) {
                 timer1stop();
                 switch (show) {
                 case show_time:
-                    if(set == set_minute) {
+                    if(set == set_second) {
                         minute++;
                         if (minute > 59) {
                             minute = 0;
                         }
                         write(minute, minute_RTC);
                     }
-                    if(set == set_hour) {
+                    if(set == set_first) {
                         hour++;
                         if (hour > 23) {
                             hour = 0;
@@ -172,14 +120,14 @@ int main() {
                     }
                     break;
                 case show_date:
-                    if(set == set_day) {
+                    if(set == set_first) {
                         day++;
                         if (day > 31) {
                             day = 1;
                         }
                         write(day, day_RTC);
                     }
-                    if(set == set_month) {
+                    if(set == set_second) {
                         month++;
                         if (month > 12) {
                             month = 1;
@@ -188,7 +136,7 @@ int main() {
                     }
                     break;
                 case show_year:
-                    if(set == set_year) {
+                    if(set == set_both) {
                         year++;
                         if (year > 99) {
                             year = 1;
@@ -196,9 +144,83 @@ int main() {
                         write(year, year_RTC);
                     }
                     break;
+
+                case show_onTime1:
+                    if (show == show_onTime1) {
+                        if(set == set_first) {
+                            on[0]++;
+                            if (on[0] > 23) {
+                                on[0] = 0;
+                            }
+                            eeprom_write_byte ((uint8_t*)0, on[0]);
+                        }
+                        if(set == set_second) {
+                            on[1]++;
+                            if (on[1] > 59) {
+                                on[1] = 0;
+                            }
+                            eeprom_write_byte ((uint8_t*)1, on[1]);
+                        }
+                    }
+                    break;
+                case show_onTime2:
+                    if (show == show_onTime2) {
+                        if(set == set_first) {
+                            on[2]++;
+                            if (on[2] > 23) {
+                                on[2] = 0;
+                            }
+                            eeprom_write_byte ((uint8_t*)4, on[2]);
+                        }
+                        if(set == set_second) {
+                            on[3]++;
+                            if (on[3] > 59) {
+                                on[3] = 0;
+                            }
+                            eeprom_write_byte ((uint8_t*)5, on[3]);
+                        }
+                    }
+                    break;
+
+                case show_offTime1:
+                    if (show == show_offTime1) {
+                        if(set == set_first) {
+                            off[0]++;
+                            if (off[0] > 23) {
+                                off[0] = 0;
+                            }
+                            eeprom_write_byte ((uint8_t*)2, off[0]);
+                        }
+                        if(set == set_second) {
+                            off[1]++;
+                            if (off[1] > 59) {
+                                off[1] = 0;
+                            }
+                            eeprom_write_byte ((uint8_t*)3, off[1]);
+                        }
+                    }
+                    break;
+
+                case show_offTime2:
+                    if (show == show_offTime2) {
+                        if(set == set_first) {
+                            off[2]++;
+                            if (off[2] > 23) {
+                                off[2] = 0;
+                            }
+                            eeprom_write_byte ((uint8_t*)6, off[2]);
+                        }
+                        if(set == set_second) {
+                            off[3]++;
+                            if (off[3] > 59) {
+                                off[3] = 0;
+                            }
+                            eeprom_write_byte ((uint8_t*)7, off[3]);
+                        }
+                    }
+                    break;
                 }
                 timer1start();
-
 
             } else {
                 show++;
@@ -209,29 +231,34 @@ int main() {
                     readYear();
                 }
             }
-            if (show == 3) show = show_time;
+
+            if (show == show_end) {
+                show = show_time;
+            }
         }
 
         if (debounce(&PINB, PB1)) {
-            set++;
-
-            // read date, set date
-            if (set == set_day) {
+            switch (show) {
+            case show_time:
+            case show_date:
                 readDate();
-                show = show_date;
-            }
-            if (set == set_month) {
-                readDate();
-                show = show_date;
-            }
-            if (set == set_year) {
+            case show_onTime1:
+            case show_onTime2:
+            case show_offTime1:
+            case show_offTime2:
+                set++;
+                if (set > 2) {
+                    set = set_none;
+                }
+                break;
+            case show_year:
+                if (set == set_both) {
+                    set = set_none;
+                } else {
+                    set = set_both;
+                }
                 readYear();
-                show = show_year;
-            }
-
-            if (set == 6) {
-                set = set_none;
-                show = show_time;
+                break;
             }
         }
 
@@ -240,6 +267,9 @@ int main() {
         } else {
             PORTB &= ~(1 << PB2);
         }
+
+        //
+        //_delay_ms(100);
     }
 
     return 0;
@@ -249,9 +279,9 @@ ISR(TIMER1_OVF_vect) {
     readSecond();
 
     if (second % 2) {
-        blinkDot = true;
+        showDot = true;
     } else {
-        blinkDot = false;
+        showDot = false;
     }
 
     if (second == 0) {
@@ -264,16 +294,40 @@ ISR(TIMER1_OVF_vect) {
 
 ISR(TIMER0_OVF_vect) {
     int disp;
+    unsigned int position = 2;
 
     switch (show) {
     case show_time:
         disp = (hour * 100) + minute;
+        position = 2;
         break;
     case show_date:
         disp = (day * 100) + month;
+        showDot = true;
+        position = 2;
         break;
     case show_year:
         disp = year + 2000;
+        showDot = false;
+        position = 5;
+        break;
+    case show_onTime1:
+        position = 3;
+        showDot = true;
+        disp = (on[0] * 100) + on[1];
+        break;
+    case show_onTime2:
+        position = 2;
+        showDot = true;
+        disp = (on[2] * 100) + on[3];
+        break;
+    case show_offTime1:
+        position = 3;
+        disp = (off[0] * 100) + off[1];
+        break;
+    case show_offTime2:
+        position = 2;
+        disp = (off[2] * 100) + off[3];
         break;
     default:
         disp = (hour * 100) + minute;
@@ -286,7 +340,7 @@ ISR(TIMER0_OVF_vect) {
     PORTC &= ~(1 << PC2);
     PORTC &= ~(1 << PC3);
 
-    if (set == set_hour || set == set_day) {
+    if (set == set_first) {
         blickCounter++;
 
         if (i == 3 || i == 2) {
@@ -299,9 +353,8 @@ ISR(TIMER0_OVF_vect) {
         } else {
             PORTC |= (1 << i);
         }
-
         // blinking minute
-    } else if (set == set_minute || set == set_month) {
+    } else if (set == set_second)  {
         blickCounter++;
 
         if (i == 1 || i == 0) {
@@ -315,7 +368,7 @@ ISR(TIMER0_OVF_vect) {
             PORTC |= (1 << i);
         }
 
-    } else if (set == set_year) {
+    } else if (set == set_both) {
         blickCounter++;
         if (blickCounter > 100) {
             PORTC |= (1 << i);
@@ -327,7 +380,7 @@ ISR(TIMER0_OVF_vect) {
         PORTC |= (1 << i);
     }
 
-    if (blinkDot && i == 2) {
+    if (showDot && i == position) {
         SevenSegment(digits[i], 1);
     } else {
         SevenSegment(digits[i], 0);
@@ -338,23 +391,6 @@ ISR(TIMER0_OVF_vect) {
     } else {
         i++;
     }
-}
-
-void read(unsigned char position) {
-    i2c_start_wait(PCF_addr + I2C_WRITE);      // PCF8563 write
-    i2c_write(position);                       // address
-    i2c_rep_start(PCF_addr + I2C_READ);        // read from PCF8563
-    BCD = i2c_readNak();
-    i2c_stop();                                // stop
-}
-
-void write(unsigned char value, unsigned char position) {
-    //  Prevede DEC do BCD
-    BCD = ((((value / 10) << 4) & 0xF0) | ((value % 10) & 0x0F));
-    i2c_start_wait(PCF_addr + I2C_WRITE);
-    i2c_write(position);                         // vyber adresy( hodiny minuty atd)
-    i2c_write(BCD);                              //  zapise BCD na vybranou adresu
-    i2c_stop();         //  stop
 }
 
 void timer0start(void) {
@@ -372,7 +408,6 @@ void timer1start(void) {
 void timer1stop(void) {
     TIMSK1 &= ~(1 << TOIE1);  // Disable Overflow Interrupt Enable
 }
-
 
 void Print(uint16_t num) {
 
@@ -394,51 +429,40 @@ void Print(uint16_t num) {
  * This function writes a digits given by n to the display
  * the decimal point is displayed if dp=1
  * Note: n must be less than 9
- *
- **/
+ */
 void SevenSegment(uint8_t n, uint8_t dp) {
     if(n < 11) {
         switch (n) {
         case 0:
             SEVEN_SEGMENT_PORT=0b11111100;
             break;
-
         case 1:
             SEVEN_SEGMENT_PORT=0b01100000;
             break;
-
         case 2:
             SEVEN_SEGMENT_PORT=0b11011010;
             break;
-
         case 3:
             SEVEN_SEGMENT_PORT=0b11110010;
             break;
-
         case 4:
             SEVEN_SEGMENT_PORT=0b01100110;
             break;
-
         case 5:
             SEVEN_SEGMENT_PORT=0b10110110;
             break;
-
         case 6:
             SEVEN_SEGMENT_PORT=0b10111110;
             break;
-
         case 7:
             SEVEN_SEGMENT_PORT=0b11100000;
             break;
-
         case 8:
             SEVEN_SEGMENT_PORT=0b11111110;
             break;
-
         case 9:
             SEVEN_SEGMENT_PORT=0b11110110;
             break;
-
         case 10:
             //A BLANK DISPLAY
             SEVEN_SEGMENT_PORT=0b00000000;
@@ -448,13 +472,75 @@ void SevenSegment(uint8_t n, uint8_t dp) {
         if(dp) {
             //if decimal point should be displayed
             //make 0th bit Low
-            //SEVEN_SEGMENT_PORT&=0b11111110;
             SEVEN_SEGMENT_PORT |= 0b00000001;
         }
     } else {
         //This symbol on display tells that n was greater than 10
         //so display can't handle it
-        //SEVEN_SEGMENT_PORT=0b11111101;
         SEVEN_SEGMENT_PORT=0b00000010;
     }
+}
+
+void portConfig(void) {
+    // Port c as output
+    DDRC  = 0xff;
+    PORTC = 0x00;
+
+    // Port b 1, 0 as input
+    DDRB  = 0b11111100;
+    PORTB = 0x00;
+
+    // Port D
+    SEVEN_SEGMENT_DDR=0xff;
+
+    // Turn off all segments
+    SEVEN_SEGMENT_PORT=0xff;
+}
+
+unsigned int debounce(volatile uint8_t *port, uint8_t pin) {
+    if (!(*port & (1 << pin))) {
+        _delay_ms(200);
+        return 1;
+    }
+    return 0;
+}
+
+void readDataFromEeprom() {
+    unsigned int hour;
+    unsigned int min;
+
+    hour = eeprom_read_byte((uint8_t*)0);
+    if (hour > 23) { hour = 0; }
+    on[0] = hour;
+
+    min = eeprom_read_byte((uint8_t*)1);
+    if (min > 59) { min = 0; }
+    on[1] = min;
+
+    hour = eeprom_read_byte((uint8_t*)2);
+    if (hour > 23) { hour = 0; }
+    off[0] = hour;
+
+    min = eeprom_read_byte((uint8_t*)3);
+    if (min > 59) { min = 0; }
+    off[1] = min;
+
+
+
+    hour = eeprom_read_byte((uint8_t*)4);
+    if (hour > 23) { hour = 0; }
+    on[2] = hour;
+
+    min = eeprom_read_byte((uint8_t*)5);
+    if (min > 59) { min = 0; }
+    on[3] = min;
+
+    hour = eeprom_read_byte((uint8_t*)6);
+    if (hour > 23) { hour = 0; }
+    off[2] = hour;
+
+    min = eeprom_read_byte((uint8_t*)7);
+    if (min > 59) { min = 0; }
+    off[3] = min;
+
 }
