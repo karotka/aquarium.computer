@@ -33,6 +33,8 @@ volatile uint8_t off[SWITCH_COUNT];
 volatile uint8_t switchStatus = 0;
 
 volatile unsigned int pos;
+volatile unsigned int resetStateCounter = 0;
+volatile unsigned int changeStateCounter = 0;
 
 enum {
     switch_off = 0,
@@ -117,6 +119,7 @@ int main() {
     while(1) {
 
         if (debounce(&PINB, PB0)) {
+            resetStateCounter = 0;
 
             if (set) {
                 timer1stop();
@@ -260,6 +263,8 @@ int main() {
         }
 
         if (debounce(&PINB, PB1)) {
+            resetStateCounter = 0;
+
             switch (show) {
             case show_time:
             case show_date:
@@ -292,6 +297,8 @@ int main() {
             }
         }
 
+
+
         if (set) {
             PORTB |= (1 << PB2);
         } else {
@@ -321,6 +328,33 @@ ISR(TIMER1_OVF_vect) {
     }
     if (minute == 0) {
         readHour();
+    }
+
+    // automaticly swith to show time
+    if (show != show_time) {
+        resetStateCounter++;
+        if (resetStateCounter == 400) {
+            show = show_time;
+            set = set_none;
+            resetStateCounter = 0;
+        }
+    }
+
+    // automaticly swith to show time and
+    // back to show date
+    if (show == show_time && set == set_none) {
+        changeStateCounter++;
+        if (changeStateCounter == 400) {
+            show = show_date;
+            changeStateCounter = 0;
+        }
+    }
+    if (show == show_date && set == set_none) {
+        changeStateCounter++;
+        if (changeStateCounter == 400) {
+            show = show_time;
+            changeStateCounter = 0;
+        }
     }
 }
 
