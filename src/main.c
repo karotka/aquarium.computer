@@ -5,6 +5,7 @@
 #include "twimaster.h"
 #include "rtc8563.h"
 #include <avr/eeprom.h>
+#include <string.h>
 //#include "uart.h"
 
 #define SEVEN_SEGMENT_PORT PORTD
@@ -15,19 +16,31 @@
 
 #define SWITCH_COUNT 4
 #define DIGITS 4
-
+#define STATUS_EEPROM_POS 8
 volatile uint8_t i = 0;
 
 volatile unsigned char showDot;
 volatile unsigned char show = 0;
 volatile unsigned int set = 0;
 volatile unsigned char blickCounter = 0;
+
 volatile uint8_t digits[DIGITS];
+volatile char digitsc[DIGITS];
 
 volatile uint8_t on[SWITCH_COUNT];
 volatile uint8_t off[SWITCH_COUNT];
 
+volatile uint8_t switchStatus = 0;
+
 volatile unsigned int pos;
+
+enum {
+    switch_off = 0,
+    switch_night,
+    switch_day,
+    switch_auto,
+    switch_end
+};
 
 enum {
     set_none = 0,
@@ -38,6 +51,7 @@ enum {
 
 enum {
     show_time = 0,
+    show_switch,
     show_date,
     show_year,
     show_onTime1,
@@ -50,7 +64,10 @@ enum {
 unsigned int debounce(volatile uint8_t *port, uint8_t pin);
 
 void Print(uint16_t num);
+void PrintChr(char *c);
+
 void SevenSegment(uint8_t n, uint8_t dp);
+void SevenSegment1(char ch, uint8_t dp);
 
 void timer0start(void);
 void timer1start(void);
@@ -58,6 +75,7 @@ void timer1stop(void);
 void portConfig(void);
 
 void readDataFromEeprom();
+
 
 int main() {
 
@@ -119,6 +137,10 @@ int main() {
                         write(hour, hour_RTC);
                     }
                     break;
+
+                case show_switch:
+                    break;
+
                 case show_date:
                     if(set == set_first) {
                         day++;
@@ -244,6 +266,7 @@ int main() {
                 readDate();
             case show_onTime1:
             case show_onTime2:
+
             case show_offTime1:
             case show_offTime2:
                 set++;
@@ -258,6 +281,13 @@ int main() {
                     set = set_both;
                 }
                 readYear();
+                break;
+            case show_switch:
+                switchStatus++;
+                eeprom_write_byte ((uint8_t*)STATUS_EEPROM_POS, switchStatus);
+                if(switchStatus == switch_end) {
+                    switchStatus = switch_off;
+                }
                 break;
             }
         }
@@ -298,14 +328,33 @@ ISR(TIMER1_OVF_vect) {
  * Timer Overflow for update display
  */
 ISR(TIMER0_OVF_vect) {
-    int disp;
+    int disp = 0;
     unsigned int position = 2;
+    unsigned int dispc = false;
 
     switch (show) {
     case show_time:
         disp = (hour * 100) + minute;
         position = 2;
         Print(disp);
+        break;
+
+    case show_switch:
+        dispc = true;
+        position = 5;
+        //Print(switchStatus);
+        if (switchStatus == switch_off) {
+            PrintChr("fO-L");
+        }
+        if (switchStatus == switch_night) {
+            PrintChr("in-L");
+        }
+        if (switchStatus == switch_day) {
+            PrintChr("Ad-L");
+        }
+        if (switchStatus == switch_auto) {
+            PrintChr("UA-L");
+        }
         break;
 
     case show_date:
@@ -354,9 +403,10 @@ ISR(TIMER0_OVF_vect) {
     PORTC &= ~(1 << PC2);
     PORTC &= ~(1 << PC3);
 
-    if (set == set_first) {
-        blickCounter++;
+    blickCounter++;
 
+    switch (set) {
+    case set_first:
         if (i == 3 || i == 2) {
             if (blickCounter > 100) {
                 PORTC |= (1 << i);
@@ -367,10 +417,9 @@ ISR(TIMER0_OVF_vect) {
         } else {
             PORTC |= (1 << i);
         }
+        break;
         // blinking minute
-    } else if (set == set_second)  {
-        blickCounter++;
-
+    case set_second:
         if (i == 1 || i == 0) {
             if (blickCounter > 100) {
                 PORTC |= (1 << i);
@@ -381,24 +430,30 @@ ISR(TIMER0_OVF_vect) {
         } else {
             PORTC |= (1 << i);
         }
-
-    } else if (set == set_both) {
-        blickCounter++;
+        break;
+    case set_both:
         if (blickCounter > 100) {
             PORTC |= (1 << i);
-            if (blickCounter == 200) {
-                blickCounter = 0;
-            }
         }
-    } else {
+        break;
+    default:
         PORTC |= (1 << i);
     }
 
+    if (blickCounter == 200) {
+        blickCounter = 0;
+    }
+
     // show do on the position
-    if (showDot && i == position) {
-        SevenSegment(digits[i], 1);
-    } else {
-        SevenSegment(digits[i], 0);
+    if (disp) {
+        if (showDot && i == position) {
+            SevenSegment(digits[i], 1);
+        } else {
+            SevenSegment(digits[i], 0);
+        }
+    }
+    if (dispc) {
+        SevenSegment1(digitsc[i], 0);
     }
 
     // reset counter
@@ -439,6 +494,15 @@ void Print(uint16_t num) {
 
     // Fill with leading 0
     for(j = i; j < 4; j++) digits[j]=0;
+}
+
+void PrintChr(char *c) {
+    uint8_t i = 0;
+
+    for(i = 0; i < strlen(c); i++) {
+        digitsc[i] = c[i];
+    }
+
 }
 
 /**
@@ -491,6 +555,53 @@ void SevenSegment(uint8_t n, uint8_t dp) {
     }
 }
 
+void SevenSegment1(char ch, uint8_t dp) {
+    switch (ch) {
+    case 'O':
+        SEVEN_SEGMENT_PORT=0b11111100;
+        break;
+    case 'L':
+        SEVEN_SEGMENT_PORT=0b00011100;
+        break;
+    case 'n':
+        SEVEN_SEGMENT_PORT=0b00101010;
+        break;
+    case 'f':
+        SEVEN_SEGMENT_PORT=0b10001110;
+        break;
+    case 'A':
+        SEVEN_SEGMENT_PORT=0b11101110;
+        break;
+    case 'i':
+        SEVEN_SEGMENT_PORT=0b00100000;
+        break;
+    case 'd':
+        SEVEN_SEGMENT_PORT=0b01111010;
+        break;
+    case 'e':
+        SEVEN_SEGMENT_PORT=0b11011110;
+        break;
+    case 'u':
+        SEVEN_SEGMENT_PORT=0b00111000;
+        break;
+    case 'U':
+        SEVEN_SEGMENT_PORT=0b01111100;
+        break;
+    case 'E':
+        SEVEN_SEGMENT_PORT=0b01111100;
+        break;
+    case '-':
+        SEVEN_SEGMENT_PORT=0b00000010;
+        break;
+    }
+
+    if(dp) {
+        // If decimal point should be displayed
+        // Make 0th bit Low
+        SEVEN_SEGMENT_PORT |= 0b00000001;
+    }
+}
+
 void portConfig(void) {
     // Port c as output
     DDRC  = 0xff;
@@ -518,59 +629,76 @@ unsigned int debounce(volatile uint8_t *port, uint8_t pin) {
 void readDataFromEeprom() {
     unsigned int hour;
     unsigned int min;
-    unsigned int memPos = 0;
-    unsigned int i;
+    //unsigned int memPos = 0;
+    //unsigned int i;
 
-    for (i = 0; i < SWITCH_COUNT; i++) {
+    //for (i = 0; i < SWITCH_COUNT; i++) {
+    //
+    //    hour = eeprom_read_byte((uint8_t*)memPos++);
+    //    if (hour > 23) { hour = 0; }
+    //    on[i] = hour;
+    //
+    //    min = eeprom_read_byte((uint8_t*)memPos++);
+    //    if (min > 59) { min = 0; }
+    //    on[i+1] = min;
+    //
+    //    hour = eeprom_read_byte((uint8_t*)memPos++);
+    //    if (hour > 23) { hour = 0; }
+    //    off[i] = hour;
+    //
+    //    min = eeprom_read_byte((uint8_t*)memPos++);
+    //    if (min > 59) { min = 0; }
+    //    off[i+1] = min;
+    //
+    //}
 
-        hour = eeprom_read_byte((uint8_t*)memPos++);
-        if (hour > 23) { hour = 0; }
-        on[i] = hour;
+    //       if (switchStatus = show_switch && debounce(&PINB, PB1)) {
+    //               switchStatus++;
+    //               switchStatus = eeprom_read_byte((uint8_t*)STATUS_EEPROM_POS);
+    //               if(switchStatus == switch_end) {
+    //                   switchStatus = switch_off;
+    //               }
+    //               //break;
+    //               if(switchStatus == switch_end) {
+    //                   switchStatus = switch_off;
+    //               }
+    //       }
 
-        min = eeprom_read_byte((uint8_t*)memPos++);
-        if (min > 59) { min = 0; }
-        on[i+1] = min;
 
-        hour = eeprom_read_byte((uint8_t*)memPos++);
-        if (hour > 23) { hour = 0; }
-        off[i] = hour;
+    hour = eeprom_read_byte((uint8_t*)0);
+    if (hour > 23) { hour = 0; }
+    on[0] = hour;
 
-        min = eeprom_read_byte((uint8_t*)memPos++);
-        if (min > 59) { min = 0; }
-        off[i+1] = min;
+    min = eeprom_read_byte((uint8_t*)1);
+    if (min > 59) { min = 0; }
+    on[1] = min;
 
+    hour = eeprom_read_byte((uint8_t*)2);
+    if (hour > 23) { hour = 0; }
+    off[0] = hour;
+
+    min = eeprom_read_byte((uint8_t*)3);
+    if (min > 59) { min = 0; }
+    off[1] = min;
+
+    hour = eeprom_read_byte((uint8_t*)4);
+    if (hour > 23) { hour = 0; }
+    on[2] = hour;
+
+    min = eeprom_read_byte((uint8_t*)5);
+    if (min > 59) { min = 0; }
+    on[3] = min;
+
+    hour = eeprom_read_byte((uint8_t*)6);
+    if (hour > 23) { hour = 0; }
+    off[2] = hour;
+
+    min = eeprom_read_byte((uint8_t*)7);
+    if (min > 59) { min = 0; }
+    off[3] = min;
+
+    switchStatus = eeprom_read_byte((uint8_t*)STATUS_EEPROM_POS);
+    if (switchStatus > 5) {
+        switchStatus = 0;
     }
-
-    //    hour = eeprom_read_byte((uint8_t*)0);
-    //    if (hour > 23) { hour = 0; }
-    //    on[0] = hour;
-    //
-    //    min = eeprom_read_byte((uint8_t*)1);
-    //    if (min > 59) { min = 0; }
-    //    on[1] = min;
-    //
-    //    hour = eeprom_read_byte((uint8_t*)2);
-    //    if (hour > 23) { hour = 0; }
-    //    off[0] = hour;
-    //
-    //    min = eeprom_read_byte((uint8_t*)3);
-    //    if (min > 59) { min = 0; }
-    //    off[1] = min;
-    //
-    //    hour = eeprom_read_byte((uint8_t*)4);
-    //    if (hour > 23) { hour = 0; }
-    //    on[2] = hour;
-    //
-    //    min = eeprom_read_byte((uint8_t*)5);
-    //    if (min > 59) { min = 0; }
-    //    on[3] = min;
-    //
-    //    hour = eeprom_read_byte((uint8_t*)6);
-    //    if (hour > 23) { hour = 0; }
-    //    off[2] = hour;
-    //
-    //    min = eeprom_read_byte((uint8_t*)7);
-    //    if (min > 59) { min = 0; }
-    //    off[3] = min;
-
 }
