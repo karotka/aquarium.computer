@@ -13,7 +13,7 @@
 #define true 1
 #define false 0
 
-#define SWITCH_CYCLES 4
+#define SWITCH_COUNT 4
 #define DIGITS 4
 
 volatile uint8_t i = 0;
@@ -24,8 +24,8 @@ volatile unsigned int set = 0;
 volatile unsigned char blickCounter = 0;
 volatile uint8_t digits[DIGITS];
 
-volatile uint8_t on[SWITCH_CYCLES];
-volatile uint8_t off[SWITCH_CYCLES];
+volatile uint8_t on[SWITCH_COUNT];
+volatile uint8_t off[SWITCH_COUNT];
 
 volatile unsigned int pos;
 
@@ -267,17 +267,19 @@ int main() {
         } else {
             PORTB &= ~(1 << PB2);
         }
-
-        //
         //_delay_ms(100);
     }
-
     return 0;
 }
 
+/**
+ * Timer Overflow for update time from RTC
+ * and for switch
+ */
 ISR(TIMER1_OVF_vect) {
     readSecond();
 
+    // evere second blick the dot
     if (second % 2) {
         showDot = true;
     } else {
@@ -292,6 +294,9 @@ ISR(TIMER1_OVF_vect) {
     }
 }
 
+/**
+ * Timer Overflow for update display
+ */
 ISR(TIMER0_OVF_vect) {
     int disp;
     unsigned int position = 2;
@@ -300,40 +305,49 @@ ISR(TIMER0_OVF_vect) {
     case show_time:
         disp = (hour * 100) + minute;
         position = 2;
+        Print(disp);
         break;
+
     case show_date:
         disp = (day * 100) + month;
         showDot = true;
         position = 2;
+        Print(disp);
         break;
+
     case show_year:
         disp = year + 2000;
         showDot = false;
         position = 5;
+        Print(disp);
         break;
+
     case show_onTime1:
         position = 3;
         showDot = true;
         disp = (on[0] * 100) + on[1];
+        Print(disp);
         break;
+
     case show_onTime2:
         position = 2;
         showDot = true;
         disp = (on[2] * 100) + on[3];
+        Print(disp);
         break;
+
     case show_offTime1:
         position = 3;
         disp = (off[0] * 100) + off[1];
+        Print(disp);
         break;
+
     case show_offTime2:
         position = 2;
         disp = (off[2] * 100) + off[3];
+        Print(disp);
         break;
-    default:
-        disp = (hour * 100) + minute;
     }
-
-    Print(disp);
 
     PORTC &= ~(1 << PC0);
     PORTC &= ~(1 << PC1);
@@ -380,13 +394,15 @@ ISR(TIMER0_OVF_vect) {
         PORTC |= (1 << i);
     }
 
+    // show do on the position
     if (showDot && i == position) {
         SevenSegment(digits[i], 1);
     } else {
         SevenSegment(digits[i], 0);
     }
 
-    if (i == 3) {
+    // reset counter
+    if (i == DIGITS - 1) {
         i = 0;
     } else {
         i++;
@@ -421,7 +437,7 @@ void Print(uint16_t num) {
         num = num / 10;
     }
 
-    // Fill with leading 0s
+    // Fill with leading 0
     for(j = i; j < 4; j++) digits[j]=0;
 }
 
@@ -431,53 +447,47 @@ void Print(uint16_t num) {
  * Note: n must be less than 9
  */
 void SevenSegment(uint8_t n, uint8_t dp) {
-    if(n < 11) {
-        switch (n) {
-        case 0:
-            SEVEN_SEGMENT_PORT=0b11111100;
-            break;
-        case 1:
-            SEVEN_SEGMENT_PORT=0b01100000;
-            break;
-        case 2:
-            SEVEN_SEGMENT_PORT=0b11011010;
-            break;
-        case 3:
-            SEVEN_SEGMENT_PORT=0b11110010;
-            break;
-        case 4:
-            SEVEN_SEGMENT_PORT=0b01100110;
-            break;
-        case 5:
-            SEVEN_SEGMENT_PORT=0b10110110;
-            break;
-        case 6:
-            SEVEN_SEGMENT_PORT=0b10111110;
-            break;
-        case 7:
-            SEVEN_SEGMENT_PORT=0b11100000;
-            break;
-        case 8:
-            SEVEN_SEGMENT_PORT=0b11111110;
-            break;
-        case 9:
-            SEVEN_SEGMENT_PORT=0b11110110;
-            break;
-        case 10:
-            //A BLANK DISPLAY
-            SEVEN_SEGMENT_PORT=0b00000000;
-            break;
-        }
+    switch (n) {
+    case 0:
+        SEVEN_SEGMENT_PORT=0b11111100;
+        break;
+    case 1:
+        SEVEN_SEGMENT_PORT=0b01100000;
+        break;
+    case 2:
+        SEVEN_SEGMENT_PORT=0b11011010;
+        break;
+    case 3:
+        SEVEN_SEGMENT_PORT=0b11110010;
+        break;
+    case 4:
+        SEVEN_SEGMENT_PORT=0b01100110;
+        break;
+    case 5:
+        SEVEN_SEGMENT_PORT=0b10110110;
+        break;
+    case 6:
+        SEVEN_SEGMENT_PORT=0b10111110;
+        break;
+    case 7:
+        SEVEN_SEGMENT_PORT=0b11100000;
+        break;
+    case 8:
+        SEVEN_SEGMENT_PORT=0b11111110;
+        break;
+    case 9:
+        SEVEN_SEGMENT_PORT=0b11110110;
+        break;
+    case 10:
+        // A Blank display
+        SEVEN_SEGMENT_PORT=0b00000000;
+        break;
+    }
 
-        if(dp) {
-            //if decimal point should be displayed
-            //make 0th bit Low
-            SEVEN_SEGMENT_PORT |= 0b00000001;
-        }
-    } else {
-        //This symbol on display tells that n was greater than 10
-        //so display can't handle it
-        SEVEN_SEGMENT_PORT=0b00000010;
+    if(dp) {
+        // If decimal point should be displayed
+        // Make 0th bit Low
+        SEVEN_SEGMENT_PORT |= 0b00000001;
     }
 }
 
@@ -508,39 +518,59 @@ unsigned int debounce(volatile uint8_t *port, uint8_t pin) {
 void readDataFromEeprom() {
     unsigned int hour;
     unsigned int min;
+    unsigned int memPos = 0;
+    unsigned int i;
 
-    hour = eeprom_read_byte((uint8_t*)0);
-    if (hour > 23) { hour = 0; }
-    on[0] = hour;
+    for (i = 0; i < SWITCH_COUNT; i++) {
 
-    min = eeprom_read_byte((uint8_t*)1);
-    if (min > 59) { min = 0; }
-    on[1] = min;
+        hour = eeprom_read_byte((uint8_t*)memPos++);
+        if (hour > 23) { hour = 0; }
+        on[i] = hour;
 
-    hour = eeprom_read_byte((uint8_t*)2);
-    if (hour > 23) { hour = 0; }
-    off[0] = hour;
+        min = eeprom_read_byte((uint8_t*)memPos++);
+        if (min > 59) { min = 0; }
+        on[i+1] = min;
 
-    min = eeprom_read_byte((uint8_t*)3);
-    if (min > 59) { min = 0; }
-    off[1] = min;
+        hour = eeprom_read_byte((uint8_t*)memPos++);
+        if (hour > 23) { hour = 0; }
+        off[i] = hour;
 
+        min = eeprom_read_byte((uint8_t*)memPos++);
+        if (min > 59) { min = 0; }
+        off[i+1] = min;
 
+    }
 
-    hour = eeprom_read_byte((uint8_t*)4);
-    if (hour > 23) { hour = 0; }
-    on[2] = hour;
-
-    min = eeprom_read_byte((uint8_t*)5);
-    if (min > 59) { min = 0; }
-    on[3] = min;
-
-    hour = eeprom_read_byte((uint8_t*)6);
-    if (hour > 23) { hour = 0; }
-    off[2] = hour;
-
-    min = eeprom_read_byte((uint8_t*)7);
-    if (min > 59) { min = 0; }
-    off[3] = min;
+    //    hour = eeprom_read_byte((uint8_t*)0);
+    //    if (hour > 23) { hour = 0; }
+    //    on[0] = hour;
+    //
+    //    min = eeprom_read_byte((uint8_t*)1);
+    //    if (min > 59) { min = 0; }
+    //    on[1] = min;
+    //
+    //    hour = eeprom_read_byte((uint8_t*)2);
+    //    if (hour > 23) { hour = 0; }
+    //    off[0] = hour;
+    //
+    //    min = eeprom_read_byte((uint8_t*)3);
+    //    if (min > 59) { min = 0; }
+    //    off[1] = min;
+    //
+    //    hour = eeprom_read_byte((uint8_t*)4);
+    //    if (hour > 23) { hour = 0; }
+    //    on[2] = hour;
+    //
+    //    min = eeprom_read_byte((uint8_t*)5);
+    //    if (min > 59) { min = 0; }
+    //    on[3] = min;
+    //
+    //    hour = eeprom_read_byte((uint8_t*)6);
+    //    if (hour > 23) { hour = 0; }
+    //    off[2] = hour;
+    //
+    //    min = eeprom_read_byte((uint8_t*)7);
+    //    if (min > 59) { min = 0; }
+    //    off[3] = min;
 
 }
