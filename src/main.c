@@ -17,6 +17,7 @@
 #define SWITCH_COUNT 4
 #define DIGITS 4
 #define STATUS_EEPROM_POS 8
+
 volatile uint8_t i = 0;
 
 volatile unsigned char showDot;
@@ -31,9 +32,6 @@ volatile uint8_t on[SWITCH_COUNT];
 volatile uint8_t off[SWITCH_COUNT];
 
 volatile uint8_t switchStatus = 0;
-
-volatile unsigned int pos;
-volatile unsigned int resetStateCounter = 0;
 volatile unsigned int changeStateCounter = 0;
 
 enum {
@@ -118,8 +116,9 @@ int main() {
 
     while(1) {
 
+        // if set is set for modify values
         if (debounce(&PINB, PB0)) {
-            resetStateCounter = 0;
+            changeStateCounter = 0;
 
             if (set) {
                 timer1stop();
@@ -248,6 +247,7 @@ int main() {
                 timer1start();
 
             } else {
+
                 show++;
                 if (show == show_date) {
                     readDate();
@@ -262,8 +262,9 @@ int main() {
             }
         }
 
+        // button for change position for update
         if (debounce(&PINB, PB1)) {
-            resetStateCounter = 0;
+            changeStateCounter = 0;
 
             switch (show) {
             case show_time:
@@ -297,8 +298,6 @@ int main() {
             }
         }
 
-
-
         if (set) {
             PORTB |= (1 << PB2);
         } else {
@@ -330,29 +329,21 @@ ISR(TIMER1_OVF_vect) {
         readHour();
     }
 
-    // automaticly swith to show time
-    if (show != show_time) {
-        resetStateCounter++;
-        if (resetStateCounter == 400) {
-            show = show_time;
-            set = set_none;
-            resetStateCounter = 0;
-        }
-    }
-
-    // automaticly swith to show time and
+    // automaticaly swith to show time and
     // back to show date
-    if (show == show_time && set == set_none) {
+    // and reset state due inactivity
+    if (show == show_time) {
         changeStateCounter++;
         if (changeStateCounter == 400) {
             show = show_date;
+            set = set_none;
             changeStateCounter = 0;
         }
-    }
-    if (show == show_date && set == set_none) {
+    } else {
         changeStateCounter++;
         if (changeStateCounter == 400) {
             show = show_time;
+            set = set_none;
             changeStateCounter = 0;
         }
     }
@@ -376,18 +367,17 @@ ISR(TIMER0_OVF_vect) {
     case show_switch:
         dispc = true;
         position = 5;
-        //Print(switchStatus);
         if (switchStatus == switch_off) {
-            PrintChr("fO-L");
+            PrintChr("L-Of");
         }
         if (switchStatus == switch_night) {
-            PrintChr("in-L");
+            PrintChr("L-in");
         }
         if (switchStatus == switch_day) {
-            PrintChr("Ad-L");
+            PrintChr("L-dA");
         }
         if (switchStatus == switch_auto) {
-            PrintChr("UA-L");
+            PrintChr("L-AU");
         }
         break;
 
@@ -531,9 +521,9 @@ void Print(uint16_t num) {
 }
 
 void PrintChr(char *c) {
-    uint8_t i = 0;
+    int i = 0;
 
-    for(i = 0; i < strlen(c); i++) {
+    for(i = strlen(c); i >= 0 ; i--) {
         digitsc[i] = c[i];
     }
 
