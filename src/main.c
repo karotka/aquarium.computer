@@ -121,6 +121,8 @@ int main() {
     //UART_puti(off[1]);
     //UART_puts("\n");
 
+    unsigned int i;
+
     while(1) {
 
         // if set is set for modify values
@@ -177,93 +179,86 @@ int main() {
                     break;
 
                 case show_onTime1:
-                    if (show == show_onTime1) {
-                        if(set == set_first) {
-                            on[0]++;
-                            if (on[0] > 23) {
-                                on[0] = 0;
-                            }
-                            eeprom_write_byte ((uint8_t*)0, on[0]);
+                    if(set == set_first) {
+                        on[0]++;
+                        if (on[0] > 23) {
+                            on[0] = 0;
                         }
-                        if(set == set_second) {
-                            on[1]++;
-                            if (on[1] > 59) {
-                                on[1] = 0;
-                            }
-                            eeprom_write_byte ((uint8_t*)1, on[1]);
+                        eeprom_write_byte ((uint8_t*)0, on[0]);
+                    }
+                    if(set == set_second) {
+                        on[1]++;
+                        if (on[1] > 59) {
+                            on[1] = 0;
                         }
-                        if(set == set_both) {
-                            if (dayStatus[0] == d_day) {
-                                dayStatus[0] = d_night;
-                            } else {
-                                dayStatus[0] = d_day;
-                            }
-                            eeprom_write_byte ((uint8_t*)STATUS_EEPROM_POS + 1, (uint8_t)dayStatus[0]);
+                        eeprom_write_byte ((uint8_t*)1, on[1]);
+                    }
+                    if(set == set_both) {
+                        if (dayStatus[0] == d_day) {
+                            dayStatus[0] = d_night;
+                        } else {
+                            dayStatus[0] = d_day;
                         }
+                        eeprom_write_byte ((uint8_t*)STATUS_EEPROM_POS + 1, (uint8_t)dayStatus[0]);
                     }
                     break;
+
                 case show_onTime2:
-                    if (show == show_onTime2) {
-                        if(set == set_first) {
-                            on[2]++;
-                            if (on[2] > 23) {
-                                on[2] = 0;
-                            }
-                            eeprom_write_byte ((uint8_t*)4, on[2]);
+                    if(set == set_first) {
+                        on[2]++;
+                        if (on[2] > 23) {
+                            on[2] = 0;
                         }
-                        if(set == set_second) {
-                            on[3]++;
-                            if (on[3] > 59) {
-                                on[3] = 0;
-                            }
-                            eeprom_write_byte ((uint8_t*)5, on[3]);
+                        eeprom_write_byte ((uint8_t*)4, on[2]);
+                    }
+                    if(set == set_second) {
+                        on[3]++;
+                        if (on[3] > 59) {
+                            on[3] = 0;
                         }
-                        if(set == set_both) {
-                            if (dayStatus[1] == d_day) {
-                                dayStatus[1] = d_night;
-                            } else {
-                                dayStatus[1] = d_day;
-                            }
-                            eeprom_write_byte ((uint8_t*)STATUS_EEPROM_POS + 2, (uint8_t)dayStatus[1]);
+                        eeprom_write_byte ((uint8_t*)5, on[3]);
+                    }
+                    if(set == set_both) {
+                        if (dayStatus[1] == d_day) {
+                            dayStatus[1] = d_night;
+                        } else {
+                            dayStatus[1] = d_day;
                         }
+                        eeprom_write_byte ((uint8_t*)STATUS_EEPROM_POS + 2, (uint8_t)dayStatus[1]);
                     }
                     break;
 
                 case show_offTime1:
-                    if (show == show_offTime1) {
-                        if(set == set_first) {
-                            off[0]++;
-                            if (off[0] > 23) {
-                                off[0] = 0;
-                            }
-                            eeprom_write_byte ((uint8_t*)2, off[0]);
+                    if(set == set_first) {
+                        off[0]++;
+                        if (off[0] > 23) {
+                            off[0] = 0;
                         }
-                        if(set == set_second) {
-                            off[1]++;
-                            if (off[1] > 59) {
-                                off[1] = 0;
-                            }
-                            eeprom_write_byte ((uint8_t*)3, off[1]);
+                        eeprom_write_byte ((uint8_t*)2, off[0]);
+                    }
+                    if(set == set_second) {
+                        off[1]++;
+                        if (off[1] > 59) {
+                            off[1] = 0;
                         }
+                        eeprom_write_byte ((uint8_t*)3, off[1]);
                     }
                     break;
 
                 case show_offTime2:
-                    if (show == show_offTime2) {
-                        if(set == set_first) {
-                            off[2]++;
-                            if (off[2] > 23) {
-                                off[2] = 0;
-                            }
-                            eeprom_write_byte ((uint8_t*)6, off[2]);
+                    if(set == set_first) {
+                        off[2]++;
+                        if (off[2] > 23) {
+                            off[2] = 0;
                         }
-                        if(set == set_second) {
-                            off[3]++;
-                            if (off[3] > 59) {
-                                off[3] = 0;
-                            }
-                            eeprom_write_byte ((uint8_t*)7, off[3]);
+                        eeprom_write_byte ((uint8_t*)6, off[2]);
+                    }
+                    if(set == set_second) {
+                        off[3]++;
+                        if (off[3] > 59) {
+                            off[3] = 0;
                         }
+                        eeprom_write_byte ((uint8_t*)7, off[3]);
                     }
                     break;
                 }
@@ -274,16 +269,9 @@ int main() {
                 // this is place for change display
                 // daytime, date, yer, set dates, etc.
                 show++;
-                if (show == show_date) {
-                    readDate(); // ????
+                if (show == show_end) {
+                    show = show_time;
                 }
-                if (show == show_year) {
-                    readYear(); // ????
-                }
-            }
-
-            if (show == show_end) {
-                show = show_time;
             }
         }
 
@@ -370,19 +358,33 @@ ISR(TIMER1_OVF_vect) {
     // timer switch
     if (switchStatus == switch_auto) {
         int t = (hour * 60) + minute;
+        unsigned int i, j;
+        unsigned int st = false;
+        unsigned int daySt = d_day;
 
-        int on1 = (on[0] * 60) + on[1];
-        int on2 = (on[2] * 60) + on[3];
+        j = 0;
+        for (i = 0; i < 3; i = i + 2) {
+            int on_ = (on[i] * 60) + on[i + 1];
+            int off_ = (off[i] * 60) + off[i + 1];
+            if (t >= on_ && t <= off_) {
+                st = true;
+                daySt = dayStatus[j];
+            }
+            j++;
+        }
 
-        int off1 = (off[0] * 60) + off[1];
-        int off2 = (off[2] * 60) + off[3];
-
-        if ((t >= on1 && t <= off1) || (t  >= on2 && t <= off2)) {
-            PORTB |= (1 << PB2);
+        if (daySt == d_day) { // day
+            //PORTB |= (1 << PB2);
+        } else {     // night
+            //PORTB &= ~(1 << PB2);
+        }
+        if (st) {
+        //    PORTB |= (1 << PB2);
         } else {
-            PORTB &= ~(1 << PB2);
+        //    PORTB &= ~(1 << PB2);
         }
     }
+
 
     // automaticaly swith to show time and
     // back to show date
@@ -495,10 +497,10 @@ ISR(TIMER0_OVF_vect) {
         break;
     }
 
-    PORTC &= ~(1 << PC0);
-    PORTC &= ~(1 << PC1);
-    PORTC &= ~(1 << PC2);
-    PORTC &= ~(1 << PC3);
+    PORTB &= ~(1 << PB2);//0
+    PORTB &= ~(1 << PB3);//1
+    PORTB &= ~(1 << PB4);//2
+    PORTB &= ~(1 << PB5);//3
 
     blickCounter++;
 
@@ -506,35 +508,35 @@ ISR(TIMER0_OVF_vect) {
     case set_first:
         if (i == 3 || i == 2) {
             if (blickCounter > 100) {
-                PORTC |= (1 << i);
+                PORTB |= (1 << (i + 2));
                 if (blickCounter == 200) {
                     blickCounter = 0;
                 }
             }
         } else {
-            PORTC |= (1 << i);
+            PORTB |= (1 << (i + 2));
         }
         break;
         // blinking minute
     case set_second:
         if (i == 1 || i == 0) {
             if (blickCounter > 100) {
-                PORTC |= (1 << i);
+                PORTB |= (1 << (i + 2));
                 if (blickCounter == 200) {
                     blickCounter = 0;
                 }
             }
         } else {
-            PORTC |= (1 << i);
+            PORTB |= (1 << (i + 2));
         }
         break;
     case set_both:
         if (blickCounter > 100) {
-            PORTC |= (1 << i);
+            PORTB |= (1 << (i + 2));
         }
         break;
     default:
-        PORTC |= (1 << i);
+        PORTB |= (1 << (i + 2));
     }
 
     if (blickCounter == 200) {
