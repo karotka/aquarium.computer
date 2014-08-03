@@ -260,6 +260,7 @@ int main() {
                     }
                     break;
                 }
+
                 timer1start();
 
             } else {
@@ -355,6 +356,10 @@ ISR(TIMER1_OVF_vect) {
     if (show == show_year) {
         readYear();
     }
+
+    //float t = getTemperature();
+    //if (show == show_temperature) {
+    //}
 
     // timer switch
     if (switchStatus == switch_auto) {
