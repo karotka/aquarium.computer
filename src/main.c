@@ -2,10 +2,11 @@
 #include <stdio.h>
 #include <util/delay.h>
 #include <avr/interrupt.h>
-#include "twimaster.h"
-#include "rtc8563.h"
 #include <avr/eeprom.h>
 #include <string.h>
+#include "twimaster.h"
+#include "rtc8563.h"
+#include "adc.h"
 //#include "uart.h"
 
 #define SEVEN_SEGMENT_PORT PORTD

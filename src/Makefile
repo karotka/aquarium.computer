@@ -1,5 +1,5 @@
 PRG            = main
-OBJ            = main.o twimaster.o uart.o rtc8563.o
+OBJ            = main.o twimaster.o uart.o rtc8563.o adc.o
 MCU_TARGET     = atmega328p
 OPTIMIZE       = -O2
 ISP            = usbtiny
