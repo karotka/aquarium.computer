@@ -83,7 +83,6 @@ void portConfig(void);
 
 void readDataFromEeprom();
 
-
 int main() {
 
     // global interupt enable
@@ -120,8 +119,6 @@ int main() {
     //UART_puts(" offhour:");
     //UART_puti(off[1]);
     //UART_puts("\n");
-
-    unsigned int i;
 
     while(1) {
 
@@ -354,6 +351,9 @@ ISR(TIMER1_OVF_vect) {
     if (minute == 0) {
         readHour();
     }
+    if (show == show_year) {
+        readYear();
+    }
 
     // timer switch
     if (switchStatus == switch_auto) {
@@ -379,12 +379,11 @@ ISR(TIMER1_OVF_vect) {
             //PORTB &= ~(1 << PB2);
         }
         if (st) {
-        //    PORTB |= (1 << PB2);
+            //    PORTB |= (1 << PB2);
         } else {
-        //    PORTB &= ~(1 << PB2);
+            //    PORTB &= ~(1 << PB2);
         }
     }
-
 
     // automaticaly swith to show time and
     // back to show date
