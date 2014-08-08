@@ -2,7 +2,8 @@
 
 import serial
 
-SERIAL  = "/dev/tty.NoZAP-PL2303-000013FA"
+#SERIAL  = "/dev/tty.NoZAP-PL2303-000013FA"
+SERIAL  = "/dev/tty.NoZAP-PL2303-00001014"
 #SERIAL  = "/dev/tty.NoZAP-PL2303-000012FD"
 
 ser = serial.Serial(SERIAL, 9600, stopbits=2)

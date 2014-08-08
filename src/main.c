@@ -6,7 +6,7 @@
 #include <string.h>
 #include "twimaster.h"
 #include "rtc8563.h"
-//#include "adc.h"
+#include "adc.h"
 //#include "uart.h"
 
 #define SEVEN_SEGMENT_PORT PORTD
@@ -20,9 +20,10 @@
 #define STATUS_EEPROM_POS 8
 
 volatile uint8_t i = 0;
-volatile uint8_t set = 0;
+
 volatile unsigned char showDot;
 volatile unsigned char show = 0;
+volatile unsigned int set = 0;
 volatile unsigned char blickCounter = 0;
 
 volatile uint8_t digits[DIGITS];
@@ -32,10 +33,8 @@ volatile uint8_t on[SWITCH_COUNT];
 volatile uint8_t off[SWITCH_COUNT];
 
 volatile uint8_t switchStatus = 0;
-volatile uint8_t changeStateCounter = 0;
-volatile uint8_t dayStatus[2];
-
-//volatile unsigned int temperature;
+volatile unsigned int changeStateCounter = 0;
+volatile unsigned int dayStatus[2];
 
 enum {
     d_day = 0,
@@ -70,7 +69,7 @@ enum {
     show_end
 };
 
-uint8_t debounce(volatile uint8_t *port, uint8_t pin);
+unsigned int debounce(volatile uint8_t *port, uint8_t pin);
 
 void Print(uint16_t num);
 void PrintChr(char *c);
@@ -123,9 +122,8 @@ int main() {
     //UART_puts("\n");
 
     while(1) {
-
-        // if set is set for modify values
-        if (debounce(&PINB, PB0)) {
+        // if set is set for modify values PB1
+        if (debounce(&PINB, PB1)) {
             changeStateCounter = 0;
 
             if (set) {
@@ -261,7 +259,6 @@ int main() {
                     }
                     break;
                 }
-
                 timer1start();
 
             } else {
@@ -275,8 +272,8 @@ int main() {
             }
         }
 
-        // button for change position for update
-        if (debounce(&PINB, PB1)) {
+        // button for change position for update PC3
+        if (debounce(&PINC, PC3)) {
             changeStateCounter = 0;
 
             switch (show) {
@@ -324,12 +321,22 @@ int main() {
             }
         }
 
-        //if (set) {
-        //PORTB |= (1 << PB2);
-        //} else {
-        //  PORTB &= ~(1 << PB2);
-        //}
-        //_delay_ms(100);
+        if (debounce(&PINB, PB0)) {
+            changeStateCounter = 0;
+            show = show_switch;
+            switchStatus++;
+            eeprom_write_byte ((uint8_t*)STATUS_EEPROM_POS, switchStatus);
+            if (switchStatus == switch_end) {
+                switchStatus = switch_off;
+            }
+        }
+        //
+        ////if (set) {
+        ////PORTB |= (1 << PB2);
+        ////} else {
+        ////  PORTB &= ~(1 << PB2);
+        ////}
+        ////_delay_ms(100);
     }
     return 0;
 }
@@ -358,16 +365,12 @@ ISR(TIMER1_OVF_vect) {
         readYear();
     }
 
-    //if (show == show_temperature) {
-    //temperature = getTemperature();
-    //}
-
     // timer switch
     if (switchStatus == switch_auto) {
         int t = (hour * 60) + minute;
-        uint8_t i, j;
-        uint8_t st = false;
-        uint8_t daySt = d_day;
+        unsigned int i, j;
+        unsigned int st = false;
+        unsigned int daySt = d_day;
 
         j = 0;
         for (i = 0; i < 3; i = i + 2) {
@@ -416,9 +419,9 @@ ISR(TIMER1_OVF_vect) {
  * Timer Overflow for update display
  */
 ISR(TIMER0_OVF_vect) {
-    uint8_t disp = 0;
-    uint8_t position = 2;
-    uint8_t dispc = false;
+    int disp = 0;
+    unsigned int position = 2;
+    unsigned int dispc = false;
 
     switch (show) {
     case show_time:
@@ -474,22 +477,6 @@ ISR(TIMER0_OVF_vect) {
         }
         break;
 
-//    case show_temperature:
-//        showDot = true;
-//        position = 3;
-//        if (set == set_both) {
-//            dispc = true;
-//            if (dayStatus[0] == d_day) {
-//                PrintChr("Ad-S");
-//            } else {
-//                PrintChr("in-S");
-//            }
-//        } else {
-//            disp = (on[0] * 100) + on[1];
-//            Print(disp);
-//        }
-//        break;
-//
     case show_onTime2:
         showDot = true;
         position = 2;
@@ -740,8 +727,8 @@ void SevenSegmentChar(char ch, uint8_t dp) {
 }
 
 void portConfig(void) {
-    // Port c as output
-    DDRC  = 0xff;
+    // Port c as output 3 as input
+    DDRC  = 0x11111011;
     PORTC = 0x00;
 
     // Port b 1, 0 as input
@@ -755,7 +742,7 @@ void portConfig(void) {
     SEVEN_SEGMENT_PORT=0xff;
 }
 
-uint8_t debounce(volatile uint8_t *port, uint8_t pin) {
+unsigned int debounce(volatile uint8_t *port, uint8_t pin) {
     if (!(*port & (1 << pin))) {
         _delay_ms(200);
         return 1;
@@ -764,51 +751,51 @@ uint8_t debounce(volatile uint8_t *port, uint8_t pin) {
 }
 
 void readDataFromEeprom() {
-    uint8_t hour;
-    uint8_t min;
+    unsigned int hour;
+    unsigned int min;
 
-    hour = (uint8_t)eeprom_read_byte((uint8_t*)0);
+    hour = eeprom_read_byte((uint8_t*)0);
     if (hour > 23) { hour = 0; }
     on[0] = hour;
 
-    min = (uint8_t)eeprom_read_byte((uint8_t*)1);
+    min = eeprom_read_byte((uint8_t*)1);
     if (min > 59) { min = 0; }
     on[1] = min;
 
-    hour = (uint8_t)eeprom_read_byte((uint8_t*)2);
+    hour = eeprom_read_byte((uint8_t*)2);
     if (hour > 23) { hour = 0; }
     off[0] = hour;
 
-    min = (uint8_t)eeprom_read_byte((uint8_t*)3);
+    min = eeprom_read_byte((uint8_t*)3);
     if (min > 59) { min = 0; }
     off[1] = min;
 
-    hour = (uint8_t)eeprom_read_byte((uint8_t*)4);
+    hour = eeprom_read_byte((uint8_t*)4);
     if (hour > 23) { hour = 0; }
     on[2] = hour;
 
-    min = (uint8_t)eeprom_read_byte((uint8_t*)5);
+    min = eeprom_read_byte((uint8_t*)5);
     if (min > 59) { min = 0; }
     on[3] = min;
 
-    hour = (uint8_t)eeprom_read_byte((uint8_t*)6);
+    hour = eeprom_read_byte((uint8_t*)6);
     if (hour > 23) { hour = 0; }
     off[2] = hour;
 
-    min = (uint8_t)eeprom_read_byte((uint8_t*)7);
+    min = eeprom_read_byte((uint8_t*)7);
     if (min > 59) { min = 0; }
     off[3] = min;
 
-    switchStatus = (uint8_t)eeprom_read_byte((uint8_t*)STATUS_EEPROM_POS);
+    switchStatus = eeprom_read_byte((uint8_t*)STATUS_EEPROM_POS);
     if (switchStatus > 5) {
         switchStatus = 0;
     }
 
-    dayStatus[0] = (uint8_t)eeprom_read_byte((uint8_t*)STATUS_EEPROM_POS + 1);
+    dayStatus[0] = eeprom_read_byte((uint8_t*)STATUS_EEPROM_POS + 1);
     if (dayStatus[0] > 1) {
         dayStatus[0] = 0;
     }
-    dayStatus[1] = (uint8_t)eeprom_read_byte((uint8_t*)STATUS_EEPROM_POS + 2);
+    dayStatus[1] = eeprom_read_byte((uint8_t*)STATUS_EEPROM_POS + 2);
     if (dayStatus[1] > 1) {
         dayStatus[1] = 0;
     }
