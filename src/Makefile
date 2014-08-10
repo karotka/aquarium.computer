@@ -11,7 +11,8 @@ CC             = avr-gcc
 
 # Override is only needed by avr-lib build system.
 
-override CFLAGS =  -Wall $(OPTIMIZE) -mmcu=$(MCU_TARGET) $(DEFS) -DF_CPU=$(F_CPU)
+override CFLAGS  =  -Wall $(OPTIMIZE) -mmcu=$(MCU_TARGET) $(DEFS) -DF_CPU=$(F_CPU)
+override LDFLAGS =
 
 OBJCOPY        = avr-objcopy
 OBJDUMP        = avr-objdump
@@ -19,7 +20,7 @@ OBJDUMP        = avr-objdump
 all: hex
 
 $(PRG).elf: $(OBJ)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) -lm
 
 clean:
 	rm -rf *.o *.elf *.hex

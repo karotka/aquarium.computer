@@ -1,5 +1,4 @@
 #include "adc.h"
-
 /*
  */
 
@@ -24,4 +23,30 @@ inline uint16_t ADC_get(void) {
     while(ADCSRA & (1 << ADSC));            //wait for single conversion to finish
     ADCSRA |= (1 << ADIF);                  //reset the flag
     return ADC;                             //return value
+}
+
+
+int getTemperature() {
+    const float ADC_resolution = 0.00322265625;
+
+    float Vout;              // output voltage of voltage divider
+    unsigned int R1 = 4700;  // nominal thermistor resistance at nominal temperature Tn
+    unsigned int R2 = 4700;  // fixed resistor in voltage divider
+    float Rth;               // actual thermistor resistance
+    float Tn = 25 + 273.15;  // nominal temperature in degrees Celsius, convert to degrees Kelvin
+    unsigned int Bth = 3977; // device specific constant from datasheet in Kelvin
+    float temp;              // temperature
+
+    ADC_channel(2);
+    // get the voltage divider output and convert it to volts
+    Vout = ADC_get() * ADC_resolution;
+
+    // calculate actual thermistor resistance
+    Rth = ((3.3 * R2) / (3.3 - Vout)) - R2;
+    // use thermistor equation to calculate temperature in Kelvin
+    temp = (Bth*Tn) / (Bth + log(Rth / R1) * Tn);
+    // convert temperature from Kelvin to Celsius
+    temp = temp - 273.15;
+
+    return temp;
 }

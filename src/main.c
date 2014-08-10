@@ -62,6 +62,7 @@ enum {
     show_switch,
     show_date,
     show_year,
+    show_temperature,
     show_onTime1,
     show_offTime1,
     show_onTime2,
@@ -422,6 +423,7 @@ ISR(TIMER0_OVF_vect) {
     int disp = 0;
     unsigned int position = 2;
     unsigned int dispc = false;
+    char str[5];
 
     switch (show) {
     case show_time:
@@ -452,6 +454,14 @@ ISR(TIMER0_OVF_vect) {
         showDot = true;
         position = 2;
         Print(disp);
+        break;
+
+    case show_temperature:
+        snprintf (str, 5, "%dC", getTemperature());
+        showDot = true;
+        dispc = true;
+        position = 2;
+        PrintChr(str);
         break;
 
     case show_year:
@@ -671,6 +681,33 @@ void SevenSegmentChar(char ch, uint8_t dp) {
         break;
     case 'O':
         SEVEN_SEGMENT_PORT=0b11111100;
+        break;
+    case '1':
+        SEVEN_SEGMENT_PORT=0b01100000;
+        break;
+    case '2':
+        SEVEN_SEGMENT_PORT=0b11011010;
+        break;
+    case '3':
+        SEVEN_SEGMENT_PORT=0b11110010;
+        break;
+    case '4':
+        SEVEN_SEGMENT_PORT=0b01100110;
+        break;
+    case '5':
+        SEVEN_SEGMENT_PORT=0b10110110;
+        break;
+    case '6':
+        SEVEN_SEGMENT_PORT=0b10111110;
+        break;
+    case '7':
+        SEVEN_SEGMENT_PORT=0b11100000;
+        break;
+    case '8':
+        SEVEN_SEGMENT_PORT=0b11111110;
+        break;
+    case '9':
+        SEVEN_SEGMENT_PORT=0b11110110;
         break;
     case 'L':
         SEVEN_SEGMENT_PORT=0b00011100;
