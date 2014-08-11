@@ -588,10 +588,12 @@ void timer1stop(void) {
 }
 
 void PrintChr(char *c) {
-    int i = 0;
+    unsigned int i;
+    unsigned int j = 0;
 
-    for(i = 0; i < strlen(c); i++) {
-        digitsc[i] = c[i];
+    for(i = 3; i >= 0; i--) {
+        digitsc[j] = c[i];
+        i++;
     }
 }
 
