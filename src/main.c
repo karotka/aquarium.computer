@@ -61,8 +61,8 @@ enum {
     show_time = 0,
     show_switch,
     show_date,
-    show_year,
     show_temperature,
+    show_year,
     show_onTime1,
     show_offTime1,
     show_onTime2,
@@ -385,16 +385,29 @@ ISR(TIMER1_OVF_vect) {
         }
 
         if (daySt == d_day) { // day
-            //PORTB |= (1 << PB2);
-        } else {     // night
-            //PORTB &= ~(1 << PB2);
+            PORTC |= (1 << PC0);
+        } else {               // night
+            PORTC &= ~(1 << PC0);
         }
         if (st) {
-            //    PORTB |= (1 << PB2);
+            PORTC |= (1 << PC1);
         } else {
-            //    PORTB &= ~(1 << PB2);
+            PORTC &= ~(1 << PC1);
         }
     }
+    if (switchStatus == switch_off) {
+        PORTC &= ~(1 << PC1);
+        PORTC &= ~(1 << PC0);
+    }
+    if (switchStatus == switch_night) {
+        PORTC |= (1 << PC1);
+        PORTC &= ~(1 << PC0);
+    }
+    if (switchStatus == switch_day) {
+        PORTC |= (1 << PC1);
+        PORTC |= (1 << PC0);
+    }
+
 
     // automaticaly swith to show time and
     // back to show date
@@ -421,6 +434,7 @@ ISR(TIMER1_OVF_vect) {
  */
 ISR(TIMER0_OVF_vect) {
     int disp = 0;
+    int temp = 0;
     unsigned int position = 2;
     unsigned int dispc = false;
     char str[5];
@@ -436,16 +450,16 @@ ISR(TIMER0_OVF_vect) {
         dispc = true;
         position = 5;
         if (switchStatus == switch_off) {
-            PrintChr("fO-L");
+            PrintChr("L-Of");
         }
         if (switchStatus == switch_night) {
-            PrintChr("in-L");
+            PrintChr("L-ni");
         }
         if (switchStatus == switch_day) {
-            PrintChr("Ad-L");
+            PrintChr("L-dA");
         }
         if (switchStatus == switch_auto) {
-            PrintChr("UA-L");
+            PrintChr("L-AU");
         }
         break;
 
@@ -457,7 +471,12 @@ ISR(TIMER0_OVF_vect) {
         break;
 
     case show_temperature:
-        snprintf (str, 5, "%dC", getTemperature());
+        temp = getTemperature();
+        if (temp == 0) {
+            snprintf (str, 5, "---C");
+        } else {
+            snprintf (str, 5, "%03dC", temp);
+        }
         showDot = true;
         dispc = true;
         position = 2;
@@ -477,9 +496,9 @@ ISR(TIMER0_OVF_vect) {
         if (set == set_both) {
             dispc = true;
             if (dayStatus[0] == d_day) {
-                PrintChr("Ad-S");
+                PrintChr("S-dA");
             } else {
-                PrintChr("in-S");
+                PrintChr("S-ni");
             }
         } else {
             disp = (on[0] * 100) + on[1];
@@ -493,9 +512,9 @@ ISR(TIMER0_OVF_vect) {
         if (set == set_both) {
             dispc = true;
             if (dayStatus[1] == d_day) {
-                PrintChr("Ad-S");
+                PrintChr("S-dA");
             } else {
-                PrintChr("in-S");
+                PrintChr("S-ni");
             }
         } else {
             disp = (on[2] * 100) + on[3];
@@ -573,7 +592,11 @@ ISR(TIMER0_OVF_vect) {
     }
     // display string
     if (dispc) {
-        SevenSegmentChar(digitsc[i], 0);
+        if (showDot && i == position) {
+            SevenSegmentChar(digitsc[i], 1);
+        } else {
+            SevenSegmentChar(digitsc[i], 0);
+        }
     }
 
     // reset counter
@@ -617,10 +640,12 @@ void Print(uint16_t num) {
 }
 
 void PrintChr(char *c) {
-    int i = 0;
+    unsigned int i = 0;
+    unsigned int j = 3;
 
     for(i = 0; i < strlen(c); i++) {
-        digitsc[i] = c[i];
+        digitsc[i] = c[j];
+        j--;
     }
 }
 
@@ -709,6 +734,9 @@ void SevenSegmentChar(char ch, uint8_t dp) {
     case '9':
         SEVEN_SEGMENT_PORT=0b11110110;
         break;
+    case 'C':
+        SEVEN_SEGMENT_PORT=0b10011100;
+        break;
     case 'L':
         SEVEN_SEGMENT_PORT=0b00011100;
         break;
@@ -765,7 +793,7 @@ void SevenSegmentChar(char ch, uint8_t dp) {
 
 void portConfig(void) {
     // Port c as output 3 as input
-    DDRC  = 0x11111011;
+    DDRC  = 0b00000011;
     PORTC = 0x00;
 
     // Port b 1, 0 as input
@@ -781,7 +809,7 @@ void portConfig(void) {
 
 unsigned int debounce(volatile uint8_t *port, uint8_t pin) {
     if (!(*port & (1 << pin))) {
-        _delay_ms(200);
+        _delay_ms(180);
         return 1;
     }
     return 0;

@@ -1,4 +1,6 @@
 #include "adc.h"
+#include <stdlib.h>
+
 /*
  */
 
@@ -43,10 +45,15 @@ int getTemperature() {
 
     // calculate actual thermistor resistance
     Rth = ((3.3 * R2) / (3.3 - Vout)) - R2;
+
     // use thermistor equation to calculate temperature in Kelvin
     temp = (Bth*Tn) / (Bth + log(Rth / R1) * Tn);
-    // convert temperature from Kelvin to Celsius
-    temp = temp - 273.15;
 
-    return temp;
+    // convert temperature from Kelvin to Celsius
+    temp = round((temp - 273.15) * 10) / 10;
+
+    if (temp < 0) {
+        temp = 0;
+    }
+    return (int)temp;
 }
