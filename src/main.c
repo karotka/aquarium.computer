@@ -72,7 +72,6 @@ enum {
 
 unsigned int debounce(volatile uint8_t *port, uint8_t pin);
 
-void Print(uint16_t num);
 void PrintChr(char *c);
 
 void SevenSegment(uint8_t n, uint8_t dp);
@@ -165,7 +164,7 @@ int main() {
                     if(set == set_both) {
                         year++;
                         if (year > 99) {
-                            year = 1;
+                            year = 0;
                         }
                         write(year, year_RTC);
                     }
@@ -409,42 +408,44 @@ ISR(TIMER1_OVF_vect) {
     // automaticaly swith to show time and
     // back to show date
     // and reset state due inactivity
-    //if (show == show_time) {
-    //    changeStateCounter++;
-    //    if (changeStateCounter == 400) {
-    //        show = show_date;
-    //        set = set_none;
-    //        changeStateCounter = 0;
-    //    }
-    //} else {
-    //    changeStateCounter++;
-    //    if (changeStateCounter == 300) {
-    //        show = show_time;
-    //        set = set_none;
-    //        changeStateCounter = 0;
-    //    }
-    //}
+    changeStateCounter++;
+    if (show == show_time) {
+        if (changeStateCounter == 400) {
+            show = show_date;
+            set = set_none;
+            changeStateCounter = 0;
+        }
+    } else if (show == show_date) {
+        if (changeStateCounter == 300) {
+            show = show_temperature;
+            set = set_none;
+            changeStateCounter = 0;
+        }
+    } else {
+        if (changeStateCounter == 300) {
+            show = show_time;
+            set = set_none;
+            changeStateCounter = 0;
+        }
+    }
 }
 
 /**
  * Timer Overflow for update display
  */
 ISR(TIMER0_OVF_vect) {
-    int disp = 0;
     int temp = 0;
     unsigned int position = 2;
-    unsigned int dispc = false;
-    char str[5];
+    char s[4];
 
     switch (show) {
     case show_time:
-        disp = (hour * 100) + minute;
+        sprintf (s, "%02d%02d", hour, minute);
         position = 2;
-        Print(disp);
+        PrintChr(s);
         break;
 
     case show_switch:
-        dispc = true;
         position = 5;
         if (switchStatus == switch_off) {
             PrintChr("L-Of");
@@ -461,45 +462,43 @@ ISR(TIMER0_OVF_vect) {
         break;
 
     case show_date:
-        disp = (day * 100) + month;
+        sprintf (s, "%02d%02d", day, month);
         showDot = true;
         position = 2;
-        Print(disp);
+        PrintChr(s);
         break;
 
     case show_temperature:
         temp = getTemperature();
         if (temp == 0) {
-            snprintf (str, 5, "---C");
+            sprintf (s, "---C");
         } else {
-            snprintf (str, 5, "%03dC", temp);
+            sprintf (s, "%03dC", temp);
         }
         showDot = true;
-        dispc = true;
         position = 2;
-        PrintChr(str);
+        PrintChr(s);
         break;
 
     case show_year:
-        disp = year + 2000;
+        sprintf (s, "20%02d", year);
         showDot = false;
         position = 5;
-        Print(disp);
+        PrintChr(s);
         break;
 
     case show_onTime1:
         showDot = true;
         position = 3;
         if (set == set_both) {
-            dispc = true;
             if (dayStatus[0] == d_day) {
                 PrintChr("S-dA");
             } else {
                 PrintChr("S-ni");
             }
         } else {
-            disp = (on[0] * 100) + on[1];
-            Print(disp);
+            sprintf (s, "%02d%02d", on[0], on[1]);
+            PrintChr(s);
         }
         break;
 
@@ -507,28 +506,29 @@ ISR(TIMER0_OVF_vect) {
         showDot = true;
         position = 2;
         if (set == set_both) {
-            dispc = true;
             if (dayStatus[1] == d_day) {
                 PrintChr("S-dA");
             } else {
                 PrintChr("S-ni");
             }
         } else {
-            disp = (on[2] * 100) + on[3];
-            Print(disp);
+            sprintf (s, "%02d%02d", on[2], on[3]);
+            PrintChr(s);
         }
         break;
 
     case show_offTime1:
+        showDot = true;
         position = 3;
-        disp = (off[0] * 100) + off[1];
-        Print(disp);
+        sprintf (s, "%02d%02d", off[0], off[1]);
+        PrintChr(s);
         break;
 
     case show_offTime2:
+        showDot = true;
         position = 2;
-        disp = (off[2] * 100) + off[3];
-        Print(disp);
+        sprintf (s, "%02d%02d", off[2], off[3]);
+        PrintChr(s);
         break;
     }
 
@@ -578,22 +578,11 @@ ISR(TIMER0_OVF_vect) {
         blickCounter = 0;
     }
 
-    // display number
-    if (disp) {
-        // show dot on the position i
-        if (showDot && i == position) {
-            SevenSegment(digits[i], 1);
-        } else {
-            SevenSegment(digits[i], 0);
-        }
-    }
     // display string
-    if (dispc) {
-        if (showDot && i == position) {
-            SevenSegmentChar(digitsc[i], 1);
-        } else {
-            SevenSegmentChar(digitsc[i], 0);
-        }
+    if (showDot && i == position) {
+        SevenSegmentChar(digitsc[i], 1);
+    } else {
+        SevenSegmentChar(digitsc[i], 0);
     }
 
     // reset counter
@@ -620,88 +609,26 @@ void timer1stop(void) {
     TIMSK1 &= ~(1 << TOIE1);  // Disable Overflow Interrupt Enable
 }
 
-void Print(uint16_t num) {
-
-    uint8_t i = 0;
-    uint8_t j;
-    if(num > 9999) return;
-
-    while(num) {
-        digits[i] = num % 10;
-        i++;
-        num = num / 10;
-    }
-
-    // Fill with leading 0
-    for(j = i; j < 4; j++) digits[j]=0;
-}
-
-void PrintChr(char *c) {
+void PrintChr(char c[]) {
     unsigned int i = 0;
     unsigned int j = 3;
 
-    for(i = 0; i < strlen(c); i++) {
+    for(i = 0; i < 4; i++) {
         digitsc[i] = c[j];
         j--;
     }
 }
 
 /**
- * This function writes a digits given by n to the display
+ * This function writes a char given by n to the display
  * the decimal point is displayed if dp=1
- * Note: n must be less than 9
  */
-void SevenSegment(uint8_t n, uint8_t dp) {
-    switch (n) {
-    case 0:
-        SEVEN_SEGMENT_PORT=0b11111100;
-        break;
-    case 1:
-        SEVEN_SEGMENT_PORT=0b01100000;
-        break;
-    case 2:
-        SEVEN_SEGMENT_PORT=0b11011010;
-        break;
-    case 3:
-        SEVEN_SEGMENT_PORT=0b11110010;
-        break;
-    case 4:
-        SEVEN_SEGMENT_PORT=0b01100110;
-        break;
-    case 5:
-        SEVEN_SEGMENT_PORT=0b10110110;
-        break;
-    case 6:
-        SEVEN_SEGMENT_PORT=0b10111110;
-        break;
-    case 7:
-        SEVEN_SEGMENT_PORT=0b11100000;
-        break;
-    case 8:
-        SEVEN_SEGMENT_PORT=0b11111110;
-        break;
-    case 9:
-        SEVEN_SEGMENT_PORT=0b11110110;
-        break;
-    case 10:
-        // A Blank display
-        SEVEN_SEGMENT_PORT=0b00000000;
-        break;
-    }
-
-    if(dp) {
-        // If decimal point should be displayed
-        // Make 0th bit Low
-        SEVEN_SEGMENT_PORT |= 0b00000001;
-    }
-}
-
 void SevenSegmentChar(char ch, uint8_t dp) {
     switch (ch) {
     case ' ':
         SEVEN_SEGMENT_PORT=0b00000000;
         break;
-    case 'O':
+    case '0':
         SEVEN_SEGMENT_PORT=0b11111100;
         break;
     case '1':
@@ -731,8 +658,14 @@ void SevenSegmentChar(char ch, uint8_t dp) {
     case '9':
         SEVEN_SEGMENT_PORT=0b11110110;
         break;
+    case 'A':
+        SEVEN_SEGMENT_PORT=0b11101110;
+        break;
     case 'C':
         SEVEN_SEGMENT_PORT=0b10011100;
+        break;
+    case 'O':
+        SEVEN_SEGMENT_PORT=0b11111100;
         break;
     case 'L':
         SEVEN_SEGMENT_PORT=0b00011100;
@@ -742,9 +675,6 @@ void SevenSegmentChar(char ch, uint8_t dp) {
         break;
     case 'f':
         SEVEN_SEGMENT_PORT=0b10001110;
-        break;
-    case 'A':
-        SEVEN_SEGMENT_PORT=0b11101110;
         break;
     case 'i':
         SEVEN_SEGMENT_PORT=0b00100000;
