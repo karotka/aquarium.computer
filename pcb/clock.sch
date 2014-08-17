@@ -9206,6 +9206,24 @@ Source: http://www.diodes.com/datasheets/ds23001.pdf</description>
 </device>
 </devices>
 </deviceset>
+<deviceset name="ES2D" prefix="D">
+<description>&lt;B&gt;DIODE&lt;/B&gt;&lt;p&gt;
+super fast rectifier, 2 A</description>
+<gates>
+<gate name="G$1" symbol="D" x="0" y="0"/>
+</gates>
+<devices>
+<device name="" package="SMB">
+<connects>
+<connect gate="G$1" pin="A" pad="A"/>
+<connect gate="G$1" pin="C" pad="C"/>
+</connects>
+<technologies>
+<technology name=""/>
+</technologies>
+</device>
+</devices>
+</deviceset>
 </devicesets>
 </library>
 <library name="pinhead">
@@ -10066,10 +10084,9 @@ Block, Siemens and generic&lt;p&gt;
 <part name="SUPPLY3" library="supply2" deviceset="VCC" device=""/>
 <part name="GND22" library="supply1" deviceset="GND" device=""/>
 <part name="C7" library="rcl" deviceset="C-EU" device="025-040X050"/>
-<part name="D1" library="diode" deviceset="DIODE-" device="SOD80C"/>
-<part name="R23" library="rcl" deviceset="R-EU_" device="R1206"/>
 <part name="C6" library="rcl" deviceset="C-EU" device="C0805K"/>
 <part name="C3" library="rcl" deviceset="C-EU" device="C0805K"/>
+<part name="D3" library="diode" deviceset="ES2D" device=""/>
 </parts>
 <sheets>
 <sheet>
@@ -10167,10 +10184,9 @@ Block, Siemens and generic&lt;p&gt;
 <instance part="SUPPLY3" gate="G$1" x="40.64" y="88.265"/>
 <instance part="GND22" gate="1" x="34.925" y="63.5" rot="R270"/>
 <instance part="C7" gate="G$1" x="40.64" y="73.66"/>
-<instance part="D1" gate="G$1" x="118.745" y="115.57" rot="R270"/>
-<instance part="R23" gate="G$1" x="131.445" y="109.855" rot="R180"/>
 <instance part="C6" gate="G$1" x="38.1" y="43.18" rot="R90"/>
 <instance part="C3" gate="G$1" x="38.1" y="38.1" rot="R90"/>
+<instance part="D3" gate="G$1" x="118.745" y="115.57" rot="R270"/>
 </instances>
 <busses>
 </busses>
@@ -10267,8 +10283,8 @@ Block, Siemens and generic&lt;p&gt;
 </segment>
 <segment>
 <pinref part="SUPPLY6" gate="G$1" pin="VCC"/>
-<pinref part="D1" gate="G$1" pin="A"/>
 <wire x1="118.745" y1="118.11" x2="118.745" y2="118.745" width="0.1524" layer="91"/>
+<pinref part="D3" gate="G$1" pin="A"/>
 </segment>
 </net>
 <net name="N$7" class="0">
@@ -10941,17 +10957,11 @@ Block, Siemens and generic&lt;p&gt;
 <pinref part="D2" gate="G$1" pin="C"/>
 <wire x1="126.365" y1="109.855" x2="126.365" y2="113.03" width="0.1524" layer="91"/>
 <wire x1="118.745" y1="109.855" x2="126.365" y2="109.855" width="0.1524" layer="91"/>
-<pinref part="D1" gate="G$1" pin="C"/>
 <wire x1="118.745" y1="109.855" x2="118.745" y2="113.03" width="0.1524" layer="91"/>
-<pinref part="R23" gate="G$1" pin="2"/>
-<junction x="126.365" y="109.855"/>
-</segment>
-</net>
-<net name="N$68" class="0">
-<segment>
+<pinref part="D3" gate="G$1" pin="C"/>
 <pinref part="U2" gate="A" pin="VDD"/>
-<pinref part="R23" gate="G$1" pin="1"/>
-<wire x1="136.525" y1="109.855" x2="144.145" y2="109.855" width="0.1524" layer="91"/>
+<wire x1="126.365" y1="109.855" x2="144.145" y2="109.855" width="0.1524" layer="91"/>
+<junction x="126.365" y="109.855"/>
 </segment>
 </net>
 </nets>

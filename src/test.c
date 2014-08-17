@@ -3,7 +3,8 @@
 #include <util/delay.h>
 #include <avr/interrupt.h>
 #include <string.h>
-//#include "uart.h"
+#include "uart.h"
+#include "adc.h"
 
 
 void portConfig(void) {
@@ -30,36 +31,30 @@ void timer1start(void) {
 
 int main() {
 
-    // global interupt enable
-    sei();
+    UART_init();
 
-    portConfig();
+    uint16_t val;
 
-    // timer0 aprox. get data from RTC
-    // timer1 for update 7 segment
-    //timer0start();
-    //    UART_init();
+    //initialize ADC
+    ADC_init();
+    ADC_channel(2);
 
-    // aprox. 4x per second
-    //timer1start();
+    char str[20];
 
-    //UART_puts(" offhour:");
-    //UART_puti(off[0]);
-    //UART_puts(" offhour:");
-    //UART_puti(off[1]);
-    //UART_puts("\n");
-
-    //PORTB |= (1 << PB3);
-
-
-    PORTB = 0;
-    PORTD = 0;
-
-    uint8_t i, j;
     while(1) {
-        PORTD ^= (1 << PD0);
-        _delay_ms(10);
+
+        val = getTemperature();
+
+        sprintf (str, "value: %d.", val);
+
+        //UART_puts("value:");
+        UART_puts(str);
+        UART_puts("\n");
+
+        //approximate 1s
+        _delay_ms(500);
     }
+
     return 0;
 }
 
@@ -68,12 +63,10 @@ int main() {
  * and for switch
  */
 ISR(TIMER1_OVF_vect) {
-    //    PORTD ^= (1 << PD1);
 }
 
 /**
  * Timer Overflow for update display
  */
 ISR(TIMER0_OVF_vect) {
-
 }

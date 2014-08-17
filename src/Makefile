@@ -1,5 +1,5 @@
 PRG            = main
-OBJ            = main.o twimaster.o rtc8563.o adc.o
+OBJ            = main.o twimaster.o rtc8563.o adc.o uart.o
 MCU_TARGET     = atmega328p
 OPTIMIZE       = -O2
 ISP            = usbtiny
@@ -33,10 +33,12 @@ hex:  $(PRG).hex
 install: load
 
 test:
-	$(CC) $(CFLAGS) $(LDFLAGS) -c -o test.o test.c
-	$(CC) $(CFLAGS) $(LDFLAGS) -o test.elf test.o
+	$(CC) $(CFLAGS) $(LDFLAGS) -c -o uart.o  uart.c
+	$(CC) $(CFLAGS) $(LDFLAGS) -c -o adc.o  adc.c
+	$(CC) $(CFLAGS) $(LDFLAGS) -c -o test.o  test.c
+	$(CC) $(CFLAGS) $(LDFLAGS) -o test.elf test.o uart.o adc.o -lm
 	$(OBJCOPY) -j .text -j .data -O ihex test.elf test.hex
-	avrdude -P usb -p m328p -c $(ISP) -U flash:w:$<
+	avrdude -P usb -p m328p -c $(ISP) -U flash:w:test.hex
 
 load: $(PRG).hex
 	avrdude -P usb -p m328p -c $(ISP) -U flash:w:$<

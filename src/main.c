@@ -96,6 +96,10 @@ int main() {
     // Start UART
     //UART_init();
 
+    // start ADC
+    ADC_init();
+    ADC_channel(2);
+
     portConfig();
 
     // timer0 aprox. get data from RTC
@@ -110,17 +114,8 @@ int main() {
 
     // read time from RTC
     getTime();
-
-    //UART_puts("onhour:");
-    //UART_puti(on[0]);
-    //UART_puts(" onmin:");
-    //UART_puti(on[1]);
-    //
-    //UART_puts(" offhour:");
-    //UART_puti(off[0]);
-    //UART_puts(" offhour:");
-    //UART_puti(off[1]);
-    //UART_puts("\n");
+    //char str[20];
+    //uint16_t val;
 
     while(1) {
         // if set is set for modify values PB1
@@ -331,13 +326,13 @@ int main() {
                 switchStatus = switch_off;
             }
         }
+
+        //val = getTemperature();
         //
-        ////if (set) {
-        ////PORTB |= (1 << PB2);
-        ////} else {
-        ////  PORTB &= ~(1 << PB2);
-        ////}
-        ////_delay_ms(100);
+        //sprintf (str, "value: %d.", val);
+        //UART_puts(str);
+        //UART_puts("\n");
+        //_delay_ms(500);
     }
     return 0;
 }
@@ -361,6 +356,9 @@ ISR(TIMER1_OVF_vect) {
     }
     if (minute == 0) {
         readHour();
+    }
+    if (show == show_date) {
+        readDate();
     }
     if (show == show_year) {
         readYear();
@@ -408,25 +406,24 @@ ISR(TIMER1_OVF_vect) {
         PORTC |= (1 << PC0);
     }
 
-
     // automaticaly swith to show time and
     // back to show date
     // and reset state due inactivity
-    if (show == show_time) {
-        changeStateCounter++;
-        if (changeStateCounter == 400) {
-            show = show_date;
-            set = set_none;
-            changeStateCounter = 0;
-        }
-    } else {
-        changeStateCounter++;
-        if (changeStateCounter == 400) {
-            show = show_time;
-            set = set_none;
-            changeStateCounter = 0;
-        }
-    }
+    //if (show == show_time) {
+    //    changeStateCounter++;
+    //    if (changeStateCounter == 400) {
+    //        show = show_date;
+    //        set = set_none;
+    //        changeStateCounter = 0;
+    //    }
+    //} else {
+    //    changeStateCounter++;
+    //    if (changeStateCounter == 300) {
+    //        show = show_time;
+    //        set = set_none;
+    //        changeStateCounter = 0;
+    //    }
+    //}
 }
 
 /**
@@ -793,7 +790,7 @@ void SevenSegmentChar(char ch, uint8_t dp) {
 
 void portConfig(void) {
     // Port c as output 3 as input
-    DDRC  = 0b00000011;
+    DDRC  = 0b0000011;
     PORTC = 0x00;
 
     // Port b 1, 0 as input
