@@ -15,9 +15,9 @@
 #define true 1
 #define false 0
 
-#define SWITCH_COUNT 4
+#define SWITCH_COUNT 8
 #define DIGITS 4
-#define STATUS_EEPROM_POS 8
+#define STATUS_EEPROM_POS 128
 
 volatile uint8_t i = 0;
 
@@ -25,6 +25,8 @@ volatile unsigned char showDot;
 volatile unsigned char show = 0;
 volatile unsigned int set = 0;
 volatile unsigned char blickCounter = 0;
+volatile unsigned int tempCounter = 0;
+volatile unsigned int temperature = 0;
 
 volatile uint8_t digits[DIGITS];
 volatile char digitsc[DIGITS];
@@ -34,7 +36,7 @@ volatile uint8_t off[SWITCH_COUNT];
 
 volatile uint8_t switchStatus = 0;
 volatile unsigned int changeStateCounter = 0;
-volatile unsigned int dayStatus[2];
+volatile unsigned int dayStatus[4];
 
 enum {
     d_day = 0,
@@ -67,6 +69,10 @@ enum {
     show_offTime1,
     show_onTime2,
     show_offTime2,
+    show_onTime3,
+    show_offTime3,
+    show_onTime4,
+    show_offTime4,
     show_end
 };
 
@@ -220,6 +226,56 @@ int main() {
                     }
                     break;
 
+                case show_onTime3:
+                    if(set == set_first) {
+                        on[4]++;
+                        if (on[4] > 23) {
+                            on[4] = 0;
+                        }
+                        eeprom_write_byte ((uint8_t*)8, on[4]);
+                    }
+                    if(set == set_second) {
+                        on[5]++;
+                        if (on[5] > 59) {
+                            on[5] = 0;
+                        }
+                        eeprom_write_byte ((uint8_t*)9, on[5]);
+                    }
+                    if(set == set_both) {
+                        if (dayStatus[2] == d_day) {
+                            dayStatus[2] = d_night;
+                        } else {
+                            dayStatus[2] = d_day;
+                        }
+                        eeprom_write_byte ((uint8_t*)STATUS_EEPROM_POS + 3, (uint8_t)dayStatus[2]);
+                    }
+                    break;
+
+                case show_onTime4:
+                    if(set == set_first) {
+                        on[6]++;
+                        if (on[6] > 23) {
+                            on[6] = 0;
+                        }
+                        eeprom_write_byte ((uint8_t*)12, on[6]);
+                    }
+                    if(set == set_second) {
+                        on[7]++;
+                        if (on[7] > 59) {
+                            on[7] = 0;
+                        }
+                        eeprom_write_byte ((uint8_t*)13, on[7]);
+                    }
+                    if(set == set_both) {
+                        if (dayStatus[3] == d_day) {
+                            dayStatus[3] = d_night;
+                        } else {
+                            dayStatus[3] = d_day;
+                        }
+                        eeprom_write_byte ((uint8_t*)STATUS_EEPROM_POS + 4, (uint8_t)dayStatus[3]);
+                    }
+                    break;
+
                 case show_offTime1:
                     if(set == set_first) {
                         off[0]++;
@@ -253,6 +309,40 @@ int main() {
                         eeprom_write_byte ((uint8_t*)7, off[3]);
                     }
                     break;
+
+                case show_offTime3:
+                    if(set == set_first) {
+                        off[4]++;
+                        if (off[4] > 23) {
+                            off[4] = 0;
+                        }
+                        eeprom_write_byte ((uint8_t*)10, off[4]);
+                    }
+                    if(set == set_second) {
+                        off[5]++;
+                        if (off[5] > 59) {
+                            off[5] = 0;
+                        }
+                        eeprom_write_byte ((uint8_t*)11, off[5]);
+                    }
+                    break;
+
+                case show_offTime4:
+                    if(set == set_first) {
+                        off[6]++;
+                        if (off[6] > 23) {
+                            off[6] = 0;
+                        }
+                        eeprom_write_byte ((uint8_t*)14, off[6]);
+                    }
+                    if(set == set_second) {
+                        off[7]++;
+                        if (off[7] > 59) {
+                            off[7] = 0;
+                        }
+                        eeprom_write_byte ((uint8_t*)15, off[7]);
+                    }
+                    break;
                 }
                 timer1start();
 
@@ -283,6 +373,8 @@ int main() {
 
             case show_onTime1:
             case show_onTime2:
+            case show_onTime3:
+            case show_onTime4:
                 set++;
                 if (set == set_end) {
                     set = set_none;
@@ -291,6 +383,8 @@ int main() {
 
             case show_offTime1:
             case show_offTime2:
+            case show_offTime3:
+            case show_offTime4:
                 set++;
                 if (set == set_both) {
                     set = set_none;
@@ -363,6 +457,12 @@ ISR(TIMER1_OVF_vect) {
         readYear();
     }
 
+    tempCounter++;
+    if (tempCounter == 200) {
+        temperature = getTemperature();
+        tempCounter = 0;
+    }
+
     // timer switch
     if (switchStatus == switch_auto) {
         int t = (hour * 60) + minute;
@@ -371,12 +471,13 @@ ISR(TIMER1_OVF_vect) {
         unsigned int daySt = d_day;
 
         j = 0;
-        for (i = 0; i < 3; i = i + 2) {
+        for (i = 0; i < 7; i = i + 2) {
             int on_ = (on[i] * 60) + on[i + 1];
             int off_ = (off[i] * 60) + off[i + 1];
             if (t >= on_ && t <= off_) {
                 st = true;
                 daySt = dayStatus[j];
+                break;
             }
             j++;
         }
@@ -410,19 +511,19 @@ ISR(TIMER1_OVF_vect) {
     // and reset state due inactivity
     changeStateCounter++;
     if (show == show_time) {
-        if (changeStateCounter == 400) {
+        if (changeStateCounter == 300) {
             show = show_date;
             set = set_none;
             changeStateCounter = 0;
         }
     } else if (show == show_date) {
-        if (changeStateCounter == 300) {
+        if (changeStateCounter == 100) {
             show = show_temperature;
             set = set_none;
             changeStateCounter = 0;
         }
     } else {
-        if (changeStateCounter == 300) {
+        if (changeStateCounter == 400) {
             show = show_time;
             set = set_none;
             changeStateCounter = 0;
@@ -434,7 +535,6 @@ ISR(TIMER1_OVF_vect) {
  * Timer Overflow for update display
  */
 ISR(TIMER0_OVF_vect) {
-    int temp = 0;
     unsigned int position = 2;
     char s[4];
 
@@ -469,11 +569,10 @@ ISR(TIMER0_OVF_vect) {
         break;
 
     case show_temperature:
-        temp = getTemperature();
-        if (temp == 0) {
+        if (temperature == 0) {
             sprintf (s, "---C");
         } else {
-            sprintf (s, "%03dC", temp);
+            sprintf (s, "%03dC", temperature);
         }
         showDot = true;
         position = 2;
@@ -517,6 +616,36 @@ ISR(TIMER0_OVF_vect) {
         }
         break;
 
+    case show_onTime3:
+        showDot = true;
+        position = 1;
+        if (set == set_both) {
+            if (dayStatus[2] == d_day) {
+                PrintChr("S-dA");
+            } else {
+                PrintChr("S-ni");
+            }
+        } else {
+            sprintf (s, "%02d%02d", on[4], on[5]);
+            PrintChr(s);
+        }
+        break;
+
+    case show_onTime4:
+        showDot = true;
+        position = 0;
+        if (set == set_both) {
+            if (dayStatus[3] == d_day) {
+                PrintChr("S-dA");
+            } else {
+                PrintChr("S-ni");
+            }
+        } else {
+            sprintf (s, "%02d%02d", on[6], on[7]);
+            PrintChr(s);
+        }
+        break;
+
     case show_offTime1:
         showDot = true;
         position = 3;
@@ -528,6 +657,20 @@ ISR(TIMER0_OVF_vect) {
         showDot = true;
         position = 2;
         sprintf (s, "%02d%02d", off[2], off[3]);
+        PrintChr(s);
+        break;
+
+    case show_offTime3:
+        showDot = true;
+        position = 1;
+        sprintf (s, "%02d%02d", off[4], off[5]);
+        PrintChr(s);
+        break;
+
+    case show_offTime4:
+        showDot = true;
+        position = 0;
+        sprintf (s, "%02d%02d", off[6], off[7]);
         PrintChr(s);
         break;
     }
@@ -746,6 +889,7 @@ void readDataFromEeprom() {
     unsigned int hour;
     unsigned int min;
 
+    // sequence 1
     hour = eeprom_read_byte((uint8_t*)0);
     if (hour > 23) { hour = 0; }
     on[0] = hour;
@@ -762,6 +906,7 @@ void readDataFromEeprom() {
     if (min > 59) { min = 0; }
     off[1] = min;
 
+    // sequence 2
     hour = eeprom_read_byte((uint8_t*)4);
     if (hour > 23) { hour = 0; }
     on[2] = hour;
@@ -778,11 +923,46 @@ void readDataFromEeprom() {
     if (min > 59) { min = 0; }
     off[3] = min;
 
+    // sequence 3
+    hour = eeprom_read_byte((uint8_t*)8);
+    if (hour > 23) { hour = 0; }
+    on[4] = hour;
+
+    min = eeprom_read_byte((uint8_t*)9);
+    if (min > 59) { min = 0; }
+    on[5] = min;
+
+    hour = eeprom_read_byte((uint8_t*)10);
+    if (hour > 23) { hour = 0; }
+    off[4] = hour;
+
+    min = eeprom_read_byte((uint8_t*)11);
+    if (min > 59) { min = 0; }
+    off[5] = min;
+
+    // sequence 4
+    hour = eeprom_read_byte((uint8_t*)12);
+    if (hour > 23) { hour = 0; }
+    on[6] = hour;
+
+    min = eeprom_read_byte((uint8_t*)13);
+    if (min > 59) { min = 0; }
+    on[7] = min;
+
+    hour = eeprom_read_byte((uint8_t*)14);
+    if (hour > 23) { hour = 0; }
+    off[6] = hour;
+
+    min = eeprom_read_byte((uint8_t*)15);
+    if (min > 59) { min = 0; }
+    off[7] = min;
+
+
+    //
     switchStatus = eeprom_read_byte((uint8_t*)STATUS_EEPROM_POS);
     if (switchStatus > 5) {
         switchStatus = 0;
     }
-
     dayStatus[0] = eeprom_read_byte((uint8_t*)STATUS_EEPROM_POS + 1);
     if (dayStatus[0] > 1) {
         dayStatus[0] = 0;
@@ -790,5 +970,13 @@ void readDataFromEeprom() {
     dayStatus[1] = eeprom_read_byte((uint8_t*)STATUS_EEPROM_POS + 2);
     if (dayStatus[1] > 1) {
         dayStatus[1] = 0;
+    }
+    dayStatus[2] = eeprom_read_byte((uint8_t*)STATUS_EEPROM_POS + 3);
+    if (dayStatus[2] > 1) {
+        dayStatus[2] = 0;
+    }
+    dayStatus[3] = eeprom_read_byte((uint8_t*)STATUS_EEPROM_POS + 4);
+    if (dayStatus[3] > 1) {
+        dayStatus[3] = 0;
     }
 }

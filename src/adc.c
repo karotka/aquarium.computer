@@ -25,19 +25,25 @@ inline uint16_t ADC_get(void) {
 }
 
 uint16_t getTemperature() {
-    float Vout;              // output voltage of voltage divider
-    unsigned int R1 = 4300;  // nominal thermistor resistance at nominal temperature Tn
-    unsigned int R2 = 4473;  // fixed resistor in voltage divider
+    float Vout = 0;          // output voltage of voltage divider
+    unsigned int R1 = 4473;  // nominal thermistor resistance at nominal temperature Tn
+    unsigned int R2 = 6600;  // fixed resistor in voltage divider
     float Rth;               // actual thermistor resistance
     float Tn = 25 + 273.15;  // nominal temperature in degrees Celsius, convert to degrees Kelvin
-    unsigned int Bth = 3977; // device specific constant from datasheet in Kelvin
+    //unsigned int Bth = 3977; // device specific constant from datasheet in Kelvin
+    unsigned int Bth = 5200; // device specific constant from datasheet in Kelvin
     float temp;              // temperature
+    unsigned int i;
 
     // get the voltage divider output and convert it to volts
-    Vout = ADC_get() * ADCRESOLUTION;
+    for (i = 0 ; i < 8; i++) {
+        Vout += (ADC_get() * ADCRESOLUTION);
+    }
+    Vout = Vout / 8.0;
 
     // calculate actual thermistor resistance
-    Rth = ((AVCC - Vout) * R2) / Vout;
+    //Rth = ((AVCC - Vout) * R2) / Vout;
+    Rth = ((AVCC * R2) / Vout) - R2;
 
     // use thermistor equation to calculate temperature in Kelvin
     temp = (Bth * Tn) / (Bth + log(Rth / R1) * Tn);
