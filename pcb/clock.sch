@@ -9485,6 +9485,50 @@ super fast rectifier, 2 A</description>
 <rectangle x1="2.159" y1="-5.461" x2="2.921" y2="-4.699" layer="21"/>
 <rectangle x1="2.159" y1="-4.699" x2="2.921" y2="-2.921" layer="51"/>
 </package>
+<package name="1X02">
+<description>&lt;b&gt;PIN HEADER&lt;/b&gt;</description>
+<wire x1="-1.905" y1="1.27" x2="-0.635" y2="1.27" width="0.1524" layer="21"/>
+<wire x1="-0.635" y1="1.27" x2="0" y2="0.635" width="0.1524" layer="21"/>
+<wire x1="0" y1="0.635" x2="0" y2="-0.635" width="0.1524" layer="21"/>
+<wire x1="0" y1="-0.635" x2="-0.635" y2="-1.27" width="0.1524" layer="21"/>
+<wire x1="-2.54" y1="0.635" x2="-2.54" y2="-0.635" width="0.1524" layer="21"/>
+<wire x1="-1.905" y1="1.27" x2="-2.54" y2="0.635" width="0.1524" layer="21"/>
+<wire x1="-2.54" y1="-0.635" x2="-1.905" y2="-1.27" width="0.1524" layer="21"/>
+<wire x1="-0.635" y1="-1.27" x2="-1.905" y2="-1.27" width="0.1524" layer="21"/>
+<wire x1="0" y1="0.635" x2="0.635" y2="1.27" width="0.1524" layer="21"/>
+<wire x1="0.635" y1="1.27" x2="1.905" y2="1.27" width="0.1524" layer="21"/>
+<wire x1="1.905" y1="1.27" x2="2.54" y2="0.635" width="0.1524" layer="21"/>
+<wire x1="2.54" y1="0.635" x2="2.54" y2="-0.635" width="0.1524" layer="21"/>
+<wire x1="2.54" y1="-0.635" x2="1.905" y2="-1.27" width="0.1524" layer="21"/>
+<wire x1="1.905" y1="-1.27" x2="0.635" y2="-1.27" width="0.1524" layer="21"/>
+<wire x1="0.635" y1="-1.27" x2="0" y2="-0.635" width="0.1524" layer="21"/>
+<pad name="1" x="-1.27" y="0" drill="1.016" shape="long" rot="R90"/>
+<pad name="2" x="1.27" y="0" drill="1.016" shape="long" rot="R90"/>
+<text x="-2.6162" y="1.8288" size="1.27" layer="25" ratio="10">&gt;NAME</text>
+<text x="-2.54" y="-3.175" size="1.27" layer="27">&gt;VALUE</text>
+<rectangle x1="-1.524" y1="-0.254" x2="-1.016" y2="0.254" layer="51"/>
+<rectangle x1="1.016" y1="-0.254" x2="1.524" y2="0.254" layer="51"/>
+</package>
+<package name="1X02/90">
+<description>&lt;b&gt;PIN HEADER&lt;/b&gt;</description>
+<wire x1="-2.54" y1="-1.905" x2="0" y2="-1.905" width="0.1524" layer="21"/>
+<wire x1="0" y1="-1.905" x2="0" y2="0.635" width="0.1524" layer="21"/>
+<wire x1="0" y1="0.635" x2="-2.54" y2="0.635" width="0.1524" layer="21"/>
+<wire x1="-2.54" y1="0.635" x2="-2.54" y2="-1.905" width="0.1524" layer="21"/>
+<wire x1="-1.27" y1="6.985" x2="-1.27" y2="1.27" width="0.762" layer="21"/>
+<wire x1="0" y1="-1.905" x2="2.54" y2="-1.905" width="0.1524" layer="21"/>
+<wire x1="2.54" y1="-1.905" x2="2.54" y2="0.635" width="0.1524" layer="21"/>
+<wire x1="2.54" y1="0.635" x2="0" y2="0.635" width="0.1524" layer="21"/>
+<wire x1="1.27" y1="6.985" x2="1.27" y2="1.27" width="0.762" layer="21"/>
+<pad name="1" x="-1.27" y="-3.81" drill="1.016" shape="long" rot="R90"/>
+<pad name="2" x="1.27" y="-3.81" drill="1.016" shape="long" rot="R90"/>
+<text x="-3.175" y="-3.81" size="1.27" layer="25" ratio="10" rot="R90">&gt;NAME</text>
+<text x="4.445" y="-3.81" size="1.27" layer="27" rot="R90">&gt;VALUE</text>
+<rectangle x1="-1.651" y1="0.635" x2="-0.889" y2="1.143" layer="21"/>
+<rectangle x1="0.889" y1="0.635" x2="1.651" y2="1.143" layer="21"/>
+<rectangle x1="-1.651" y1="-2.921" x2="-0.889" y2="-1.905" layer="21"/>
+<rectangle x1="0.889" y1="-2.921" x2="1.651" y2="-1.905" layer="21"/>
+</package>
 </packages>
 <symbols>
 <symbol name="PINH2X8">
@@ -9524,6 +9568,16 @@ super fast rectifier, 2 A</description>
 <pin name="4" x="5.08" y="0" visible="pad" length="short" direction="pas" function="dot" rot="R180"/>
 <pin name="5" x="-2.54" y="-2.54" visible="pad" length="short" direction="pas" function="dot"/>
 <pin name="6" x="5.08" y="-2.54" visible="pad" length="short" direction="pas" function="dot" rot="R180"/>
+</symbol>
+<symbol name="PINHD2">
+<wire x1="-6.35" y1="-2.54" x2="1.27" y2="-2.54" width="0.4064" layer="94"/>
+<wire x1="1.27" y1="-2.54" x2="1.27" y2="5.08" width="0.4064" layer="94"/>
+<wire x1="1.27" y1="5.08" x2="-6.35" y2="5.08" width="0.4064" layer="94"/>
+<wire x1="-6.35" y1="5.08" x2="-6.35" y2="-2.54" width="0.4064" layer="94"/>
+<text x="-6.35" y="5.715" size="1.778" layer="95">&gt;NAME</text>
+<text x="-6.35" y="-5.08" size="1.778" layer="96">&gt;VALUE</text>
+<pin name="1" x="-2.54" y="2.54" visible="pad" length="short" direction="pas" function="dot"/>
+<pin name="2" x="-2.54" y="0" visible="pad" length="short" direction="pas" function="dot"/>
 </symbol>
 </symbols>
 <devicesets>
@@ -9608,6 +9662,32 @@ super fast rectifier, 2 A</description>
 <connect gate="A" pin="4" pad="4"/>
 <connect gate="A" pin="5" pad="5"/>
 <connect gate="A" pin="6" pad="6"/>
+</connects>
+<technologies>
+<technology name=""/>
+</technologies>
+</device>
+</devices>
+</deviceset>
+<deviceset name="PINHD-1X2" prefix="JP" uservalue="yes">
+<description>&lt;b&gt;PIN HEADER&lt;/b&gt;</description>
+<gates>
+<gate name="G$1" symbol="PINHD2" x="0" y="0"/>
+</gates>
+<devices>
+<device name="" package="1X02">
+<connects>
+<connect gate="G$1" pin="1" pad="1"/>
+<connect gate="G$1" pin="2" pad="2"/>
+</connects>
+<technologies>
+<technology name=""/>
+</technologies>
+</device>
+<device name="/90" package="1X02/90">
+<connects>
+<connect gate="G$1" pin="1" pad="1"/>
+<connect gate="G$1" pin="2" pad="2"/>
 </connects>
 <technologies>
 <technology name=""/>
@@ -10087,6 +10167,9 @@ Block, Siemens and generic&lt;p&gt;
 <part name="C6" library="rcl" deviceset="C-EU" device="C0805K"/>
 <part name="C3" library="rcl" deviceset="C-EU" device="C0805K"/>
 <part name="D3" library="diode" deviceset="ES2D" device=""/>
+<part name="JP4" library="pinhead" deviceset="PINHD-1X2" device=""/>
+<part name="GND23" library="supply1" deviceset="GND" device=""/>
+<part name="X3" library="con-wago-508" deviceset="W237-02P" device=""/>
 </parts>
 <sheets>
 <sheet>
@@ -10165,10 +10248,10 @@ Block, Siemens and generic&lt;p&gt;
 <instance part="R2" gate="G$1" x="91.44" y="9.525"/>
 <instance part="R3" gate="G$1" x="91.44" y="15.24"/>
 <instance part="R4" gate="G$1" x="91.44" y="20.955"/>
-<instance part="R21" gate="G$1" x="96.52" y="113.03" rot="R90"/>
-<instance part="R22" gate="G$1" x="96.52" y="98.425" rot="R90"/>
-<instance part="GND19" gate="1" x="96.52" y="90.805"/>
-<instance part="SUPPLY2" gate="G$1" x="96.52" y="121.285"/>
+<instance part="R21" gate="G$1" x="33.02" y="109.855" rot="R90"/>
+<instance part="R22" gate="G$1" x="33.02" y="81.915" rot="R90"/>
+<instance part="GND19" gate="1" x="33.02" y="72.39"/>
+<instance part="SUPPLY2" gate="G$1" x="33.02" y="121.92"/>
 <instance part="X2" gate="-1" x="-20.32" y="115.57"/>
 <instance part="X2" gate="-2" x="-13.335" y="92.075" rot="R270"/>
 <instance part="X2" gate="-3" x="-13.335" y="71.755" rot="R90"/>
@@ -10187,6 +10270,10 @@ Block, Siemens and generic&lt;p&gt;
 <instance part="C6" gate="G$1" x="38.1" y="43.18" rot="R90"/>
 <instance part="C3" gate="G$1" x="38.1" y="38.1" rot="R90"/>
 <instance part="D3" gate="G$1" x="118.745" y="115.57" rot="R270"/>
+<instance part="JP4" gate="G$1" x="94.615" y="123.19" rot="R90"/>
+<instance part="GND23" gate="1" x="94.615" y="108.585"/>
+<instance part="X3" gate="-1" x="50.165" y="127" rot="R270"/>
+<instance part="X3" gate="-2" x="28.575" y="126.365" rot="R270"/>
 </instances>
 <busses>
 </busses>
@@ -10267,7 +10354,7 @@ Block, Siemens and generic&lt;p&gt;
 <segment>
 <pinref part="SUPPLY2" gate="G$1" pin="VCC"/>
 <pinref part="R21" gate="G$1" pin="1"/>
-<wire x1="96.52" y1="118.11" x2="96.52" y2="118.745" width="0.1524" layer="91"/>
+<wire x1="33.02" y1="114.935" x2="33.02" y2="119.38" width="0.1524" layer="91"/>
 </segment>
 <segment>
 <pinref part="JP2" gate="A" pin="2"/>
@@ -10418,6 +10505,7 @@ Block, Siemens and generic&lt;p&gt;
 <segment>
 <pinref part="R22" gate="G$1" pin="1"/>
 <pinref part="GND19" gate="1" pin="GND"/>
+<wire x1="33.02" y1="74.93" x2="33.02" y2="76.835" width="0.1524" layer="91"/>
 </segment>
 <segment>
 <pinref part="X1" gate="-2" pin="KL"/>
@@ -10448,18 +10536,18 @@ Block, Siemens and generic&lt;p&gt;
 <junction x="40.64" y="63.5"/>
 <pinref part="C7" gate="G$1" pin="2"/>
 </segment>
+<segment>
+<pinref part="JP4" gate="G$1" pin="2"/>
+<pinref part="GND23" gate="1" pin="GND"/>
+<wire x1="94.615" y1="111.125" x2="94.615" y2="120.65" width="0.1524" layer="91"/>
+</segment>
 </net>
 <net name="N$12" class="0">
 <segment>
-<pinref part="IC1" gate="G$1" pin="IN"/>
-<wire x1="56.515" y1="118.745" x2="61.595" y2="118.745" width="0.1524" layer="91"/>
-<pinref part="X1" gate="-1" pin="KL"/>
-<junction x="56.515" y="118.745"/>
-<wire x1="56.515" y1="118.745" x2="30.48" y2="118.745" width="0.1524" layer="91"/>
-<wire x1="30.48" y1="118.745" x2="30.48" y2="74.295" width="0.1524" layer="91"/>
-<wire x1="30.48" y1="74.295" x2="17.145" y2="74.295" width="0.1524" layer="91"/>
+<wire x1="28.575" y1="121.285" x2="28.575" y2="74.295" width="0.1524" layer="91"/>
+<wire x1="28.575" y1="74.295" x2="17.145" y2="74.295" width="0.1524" layer="91"/>
 <pinref part="K1" gate="2" pin="P"/>
-<pinref part="C1" gate="G$1" pin="1"/>
+<pinref part="X3" gate="-2" pin="KL"/>
 </segment>
 </net>
 <net name="N$15" class="0">
@@ -10892,13 +10980,13 @@ Block, Siemens and generic&lt;p&gt;
 <segment>
 <pinref part="R22" gate="G$1" pin="2"/>
 <pinref part="R21" gate="G$1" pin="2"/>
-<wire x1="96.52" y1="107.95" x2="96.52" y2="105.41" width="0.1524" layer="91"/>
-<wire x1="96.52" y1="105.41" x2="96.52" y2="103.505" width="0.1524" layer="91"/>
-<wire x1="96.52" y1="105.41" x2="89.535" y2="105.41" width="0.1524" layer="91"/>
-<wire x1="89.535" y1="105.41" x2="89.535" y2="76.2" width="0.1524" layer="91"/>
-<pinref part="U1" gate="A" pin="PC2"/>
-<wire x1="89.535" y1="76.2" x2="83.82" y2="76.2" width="0.1524" layer="91"/>
-<junction x="96.52" y="105.41"/>
+<wire x1="33.02" y1="104.775" x2="33.02" y2="93.345" width="0.1524" layer="91"/>
+<wire x1="33.02" y1="93.345" x2="33.02" y2="86.995" width="0.1524" layer="91"/>
+<wire x1="33.02" y1="93.345" x2="45.085" y2="93.345" width="0.1524" layer="91"/>
+<wire x1="45.085" y1="93.345" x2="45.085" y2="71.12" width="0.1524" layer="91"/>
+<pinref part="U1" gate="A" pin="ADC6"/>
+<wire x1="45.085" y1="71.12" x2="48.26" y2="71.12" width="0.1524" layer="91"/>
+<junction x="33.02" y="93.345"/>
 </segment>
 </net>
 <net name="N$45" class="0">
@@ -10962,6 +11050,26 @@ Block, Siemens and generic&lt;p&gt;
 <pinref part="U2" gate="A" pin="VDD"/>
 <wire x1="126.365" y1="109.855" x2="144.145" y2="109.855" width="0.1524" layer="91"/>
 <junction x="126.365" y="109.855"/>
+</segment>
+</net>
+<net name="N$68" class="0">
+<segment>
+<pinref part="U1" gate="A" pin="PC2"/>
+<pinref part="JP4" gate="G$1" pin="1"/>
+<wire x1="83.82" y1="76.2" x2="92.075" y2="76.2" width="0.1524" layer="91"/>
+<wire x1="92.075" y1="76.2" x2="92.075" y2="120.65" width="0.1524" layer="91"/>
+</segment>
+</net>
+<net name="N$73" class="0">
+<segment>
+<pinref part="IC1" gate="G$1" pin="IN"/>
+<wire x1="56.515" y1="118.745" x2="61.595" y2="118.745" width="0.1524" layer="91"/>
+<pinref part="X1" gate="-1" pin="KL"/>
+<junction x="56.515" y="118.745"/>
+<pinref part="C1" gate="G$1" pin="1"/>
+<pinref part="X3" gate="-1" pin="KL"/>
+<wire x1="50.165" y1="121.92" x2="50.165" y2="118.745" width="0.1524" layer="91"/>
+<wire x1="50.165" y1="118.745" x2="56.515" y2="118.745" width="0.1524" layer="91"/>
 </segment>
 </net>
 </nets>
