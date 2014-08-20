@@ -28,7 +28,6 @@ volatile unsigned char blickCounter = 0;
 volatile unsigned int tempCounter = 0;
 volatile unsigned int temperature = 0;
 
-volatile uint8_t digits[DIGITS];
 volatile char digitsc[DIGITS];
 
 volatile uint8_t on[SWITCH_COUNT];
@@ -76,18 +75,15 @@ enum {
     show_end
 };
 
+// method forward declaration
 unsigned int debounce(volatile uint8_t *port, uint8_t pin);
-
 void PrintChr(char *c);
-
 void SevenSegment(uint8_t n, uint8_t dp);
 void SevenSegmentChar(char ch, uint8_t dp);
-
 void timer0start(void);
 void timer1start(void);
 void timer1stop(void);
 void portConfig(void);
-
 void readDataFromEeprom();
 
 int main() {
@@ -103,6 +99,8 @@ int main() {
 
     // start ADC
     ADC_init();
+
+    // termistor on ADC channel 2
     ADC_channel(2);
 
     portConfig();
@@ -119,8 +117,6 @@ int main() {
 
     // read time from RTC
     getTime();
-    //char str[20];
-    //uint16_t val;
 
     while(1) {
         // if set is set for modify values PB1
@@ -421,7 +417,6 @@ int main() {
         }
 
         //val = getTemperature();
-        //
         //sprintf (str, "value: %d.", val);
         //UART_puts(str);
         //UART_puts("\n");
@@ -695,7 +690,7 @@ ISR(TIMER0_OVF_vect) {
             PORTB |= (1 << (i + 2));
         }
         break;
-        // blinking minute
+
     case set_second:
         if (i == 1 || i == 0) {
             if (blickCounter > 100) {
@@ -708,11 +703,13 @@ ISR(TIMER0_OVF_vect) {
             PORTB |= (1 << (i + 2));
         }
         break;
+
     case set_both:
         if (blickCounter > 100) {
             PORTB |= (1 << (i + 2));
         }
         break;
+
     default:
         PORTB |= (1 << (i + 2));
     }
@@ -957,8 +954,7 @@ void readDataFromEeprom() {
     if (min > 59) { min = 0; }
     off[7] = min;
 
-
-    //
+    // save switch and day status
     switchStatus = eeprom_read_byte((uint8_t*)STATUS_EEPROM_POS);
     if (switchStatus > 5) {
         switchStatus = 0;
