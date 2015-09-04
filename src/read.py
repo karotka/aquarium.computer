@@ -3,7 +3,8 @@
 import serial
 
 #SERIAL  = "/dev/tty.NoZAP-PL2303-000013FA"
-SERIAL  = "/dev/tty.NoZAP-PL2303-00001014"
+#SERIAL  = "/dev/tty.NoZAP-PL2303-00001014"
+SERIAL  = "/dev/tty.usbserial-A90ZBP5L"
 #SERIAL  = "/dev/tty.NoZAP-PL2303-000012FD"
 
 ser = serial.Serial(SERIAL, 9600, stopbits=2)
@@ -23,4 +24,4 @@ def readData1():
     print ord(ser.read())
 
 while 1:
-    readData()
+    readData1()

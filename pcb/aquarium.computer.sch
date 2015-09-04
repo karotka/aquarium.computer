@@ -6,7 +6,7 @@
 <setting alwaysvectorfont="no"/>
 <setting verticaltext="up"/>
 </settings>
-<grid distance="25" unitdist="mil" unit="mil" style="lines" multiple="1" display="no" altdistance="0.01" altunitdist="inch" altunit="inch"/>
+<grid distance="0.1" unitdist="inch" unit="inch" style="lines" multiple="1" display="no" altdistance="0.01" altunitdist="inch" altunit="inch"/>
 <layers>
 <layer number="1" name="Top" color="4" fill="1" visible="no" active="no"/>
 <layer number="16" name="Bottom" color="1" fill="1" visible="no" active="no"/>
@@ -54,7 +54,7 @@
 <layer number="93" name="Pins" color="2" fill="1" visible="no" active="yes"/>
 <layer number="94" name="Symbols" color="4" fill="1" visible="yes" active="yes"/>
 <layer number="95" name="Names" color="7" fill="1" visible="yes" active="yes"/>
-<layer number="96" name="Values" color="7" fill="1" visible="yes" active="yes"/>
+<layer number="96" name="Values" color="7" fill="1" visible="no" active="yes"/>
 <layer number="97" name="Info" color="7" fill="1" visible="yes" active="yes"/>
 <layer number="98" name="Guide" color="6" fill="1" visible="yes" active="yes"/>
 <layer number="100" name="Muster" color="7" fill="1" visible="no" active="no"/>
@@ -10107,8 +10107,8 @@ Block, Siemens and generic&lt;p&gt;
 <part name="SUPPLY6" library="supply2" deviceset="VCC" device=""/>
 <part name="GND1" library="supply1" deviceset="GND" device=""/>
 <part name="GND2" library="supply1" deviceset="GND" device=""/>
-<part name="R5" library="rcl" deviceset="R-EU_" device="R1206"/>
-<part name="R6" library="rcl" deviceset="R-EU_" device="R1206"/>
+<part name="R5" library="rcl" deviceset="R-EU_" device="R1206" value="4k7"/>
+<part name="R6" library="rcl" deviceset="R-EU_" device="R1206" value="4k7"/>
 <part name="SUPPLY7" library="supply2" deviceset="VCC" device=""/>
 <part name="GND3" library="supply1" deviceset="GND" device=""/>
 <part name="GND4" library="supply1" deviceset="GND" device=""/>
@@ -10133,20 +10133,20 @@ Block, Siemens and generic&lt;p&gt;
 <part name="GND13" library="supply1" deviceset="GND" device=""/>
 <part name="32.768K" library="quarz" deviceset="MC-306" device=""/>
 <part name="JP3" library="pinhead" deviceset="PINHD-2X8" device=""/>
-<part name="R9" library="rcl" deviceset="R-EU_" device="0207/10"/>
-<part name="R10" library="rcl" deviceset="R-EU_" device="0207/10"/>
-<part name="R11" library="rcl" deviceset="R-EU_" device="0207/10"/>
-<part name="R12" library="rcl" deviceset="R-EU_" device="0207/10"/>
-<part name="R13" library="rcl" deviceset="R-EU_" device="0207/10"/>
-<part name="R14" library="rcl" deviceset="R-EU_" device="0207/10"/>
-<part name="R15" library="rcl" deviceset="R-EU_" device="0207/10"/>
-<part name="R16" library="rcl" deviceset="R-EU_" device="0207/10"/>
+<part name="R9" library="rcl" deviceset="R-EU_" device="0207/10" value="330"/>
+<part name="R10" library="rcl" deviceset="R-EU_" device="0207/10" value="330"/>
+<part name="R11" library="rcl" deviceset="R-EU_" device="0207/10" value="330"/>
+<part name="R12" library="rcl" deviceset="R-EU_" device="0207/10" value="330"/>
+<part name="R13" library="rcl" deviceset="R-EU_" device="0207/10" value="330"/>
+<part name="R14" library="rcl" deviceset="R-EU_" device="0207/10" value="330"/>
+<part name="R15" library="rcl" deviceset="R-EU_" device="0207/10" value="330"/>
+<part name="R16" library="rcl" deviceset="R-EU_" device="0207/10" value="330"/>
 <part name="Q1" library="transistor-npn" deviceset="BC447*" device=""/>
 <part name="Q2" library="transistor-npn" deviceset="BC447*" device=""/>
 <part name="Q3" library="transistor-npn" deviceset="BC447*" device=""/>
 <part name="Q4" library="transistor-npn" deviceset="BC447*" device=""/>
-<part name="R7" library="rcl" deviceset="R-EU_" device="0207/10"/>
-<part name="R8" library="rcl" deviceset="R-EU_" device="0207/10"/>
+<part name="R7" library="rcl" deviceset="R-EU_" device="0207/10" value="10k"/>
+<part name="R8" library="rcl" deviceset="R-EU_" device="0207/10" value="10k"/>
 <part name="Q5" library="transistor-npn" deviceset="BC447*" device=""/>
 <part name="Q6" library="transistor-npn" deviceset="BC447*" device=""/>
 <part name="B1" library="switch" deviceset="PBS-18" device=""/>
@@ -10155,17 +10155,17 @@ Block, Siemens and generic&lt;p&gt;
 <part name="GND14" library="supply1" deviceset="GND" device=""/>
 <part name="GND15" library="supply1" deviceset="GND" device=""/>
 <part name="GND16" library="supply1" deviceset="GND" device=""/>
-<part name="R17" library="rcl" deviceset="R-EU_" device="0207/10"/>
+<part name="R17" library="rcl" deviceset="R-EU_" device="0207/10" value="10k"/>
 <part name="SUPPLY11" library="supply2" deviceset="VCC" device=""/>
 <part name="SUPPLY12" library="supply2" deviceset="VCC" device=""/>
 <part name="GND17" library="supply1" deviceset="GND" device=""/>
 <part name="GND18" library="supply1" deviceset="GND" device=""/>
 <part name="JP1" library="pinhead" deviceset="PINHD-2X8" device=""/>
 <part name="X1" library="con-wago-508" deviceset="W237-02P" device=""/>
-<part name="R1" library="rcl" deviceset="R-EU_" device="0207/10"/>
-<part name="R2" library="rcl" deviceset="R-EU_" device="0207/10"/>
-<part name="R3" library="rcl" deviceset="R-EU_" device="0207/10"/>
-<part name="R4" library="rcl" deviceset="R-EU_" device="0207/10"/>
+<part name="R1" library="rcl" deviceset="R-EU_" device="0207/10" value="4k7"/>
+<part name="R2" library="rcl" deviceset="R-EU_" device="0207/10" value="4k7"/>
+<part name="R3" library="rcl" deviceset="R-EU_" device="0207/10" value="4k7"/>
+<part name="R4" library="rcl" deviceset="R-EU_" device="0207/10" value="4k7"/>
 <part name="TH1" library="varistor" deviceset="THERMISTOR" device="-2,5"/>
 <part name="R22" library="rcl" deviceset="R-EU_" device="R1206"/>
 <part name="GND19" library="supply1" deviceset="GND" device=""/>
@@ -10176,10 +10176,10 @@ Block, Siemens and generic&lt;p&gt;
 <part name="GND21" library="supply1" deviceset="GND" device=""/>
 <part name="R19" library="rcl" deviceset="R-EU_" device="0207/10"/>
 <part name="R20" library="rcl" deviceset="R-EU_" device="0207/10"/>
-<part name="C1" library="rcl" deviceset="C-EU" device="025-040X050"/>
-<part name="R18" library="rcl" deviceset="R-EU_" device="0207/10"/>
-<part name="C5" library="rcl" deviceset="C-EU" device="025-050X050"/>
-<part name="C2" library="rcl" deviceset="C-EU" device="C1206"/>
+<part name="C1" library="rcl" deviceset="C-EU" device="025-040X050" value="100n"/>
+<part name="R18" library="rcl" deviceset="R-EU_" device="0207/10" value="10k"/>
+<part name="C5" library="rcl" deviceset="C-EU" device="025-050X050" value="10uF"/>
+<part name="C2" library="rcl" deviceset="C-EU" device="C1206" value="100n"/>
 <part name="SUPPLY3" library="supply2" deviceset="VCC" device=""/>
 <part name="GND22" library="supply1" deviceset="GND" device=""/>
 <part name="C7" library="rcl" deviceset="C-EU" device="025-040X050"/>

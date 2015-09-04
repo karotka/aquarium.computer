@@ -7,6 +7,7 @@
 #include "twimaster.h"
 #include "rtc8563.h"
 #include "adc.h"
+#include "fifo.h"
 //#include "uart.h"
 
 #define SEVEN_SEGMENT_PORT PORTD
@@ -15,11 +16,12 @@
 #define true 1
 #define false 0
 
-#define SWITCH_COUNT 8
+#define SWITCH_COUNT 12
 #define DIGITS 4
 #define STATUS_EEPROM_POS 128
+#define ADCCHANNEL 6
 
-volatile uint8_t i = 0;
+volatile unsigned int i = 0;
 
 volatile unsigned char showDot;
 volatile unsigned char show = 0;
@@ -31,15 +33,16 @@ volatile unsigned int temperature = 0;
 volatile char digitsc[DIGITS];
 
 volatile uint8_t on[SWITCH_COUNT];
-volatile uint8_t off[SWITCH_COUNT];
 
 volatile uint8_t switchStatus = 0;
 volatile unsigned int changeStateCounter = 0;
-volatile unsigned int dayStatus[4];
+volatile unsigned int dayStatus[6];
+volatile unsigned int daySt = 0;
 
 enum {
     d_day = 0,
-    d_night
+    d_night,
+    d_off
 };
 
 enum {
@@ -65,18 +68,17 @@ enum {
     show_temperature,
     show_year,
     show_onTime1,
-    show_offTime1,
     show_onTime2,
-    show_offTime2,
     show_onTime3,
-    show_offTime3,
     show_onTime4,
-    show_offTime4,
+    show_onTime5,
+    show_onTime6,
     show_end
 };
 
 // method forward declaration
 unsigned int debounce(volatile uint8_t *port, uint8_t pin);
+inline unsigned char bitIsSet(unsigned char byte, unsigned int bit);
 void PrintChr(char *c);
 void SevenSegment(uint8_t n, uint8_t dp);
 void SevenSegmentChar(char ch, uint8_t dp);
@@ -101,7 +103,7 @@ int main() {
     ADC_init();
 
     // termistor on ADC channel 2
-    ADC_channel(2);
+    ADC_channel(ADCCHANNEL);
 
     portConfig();
 
@@ -190,6 +192,8 @@ int main() {
                     if(set == set_both) {
                         if (dayStatus[0] == d_day) {
                             dayStatus[0] = d_night;
+                        } else if (dayStatus[0] == d_night) {
+                            dayStatus[0] = d_off;
                         } else {
                             dayStatus[0] = d_day;
                         }
@@ -203,18 +207,20 @@ int main() {
                         if (on[2] > 23) {
                             on[2] = 0;
                         }
-                        eeprom_write_byte ((uint8_t*)4, on[2]);
+                        eeprom_write_byte ((uint8_t*)2, on[2]);
                     }
                     if(set == set_second) {
                         on[3]++;
                         if (on[3] > 59) {
                             on[3] = 0;
                         }
-                        eeprom_write_byte ((uint8_t*)5, on[3]);
+                        eeprom_write_byte ((uint8_t*)3, on[3]);
                     }
                     if(set == set_both) {
                         if (dayStatus[1] == d_day) {
                             dayStatus[1] = d_night;
+                        } else if (dayStatus[1] == d_night) {
+                            dayStatus[1] = d_off;
                         } else {
                             dayStatus[1] = d_day;
                         }
@@ -228,18 +234,20 @@ int main() {
                         if (on[4] > 23) {
                             on[4] = 0;
                         }
-                        eeprom_write_byte ((uint8_t*)8, on[4]);
+                        eeprom_write_byte ((uint8_t*)4, on[4]);
                     }
                     if(set == set_second) {
                         on[5]++;
                         if (on[5] > 59) {
                             on[5] = 0;
                         }
-                        eeprom_write_byte ((uint8_t*)9, on[5]);
+                        eeprom_write_byte ((uint8_t*)5, on[5]);
                     }
                     if(set == set_both) {
                         if (dayStatus[2] == d_day) {
                             dayStatus[2] = d_night;
+                        } else if (dayStatus[2] == d_night) {
+                            dayStatus[2] = d_off;
                         } else {
                             dayStatus[2] = d_day;
                         }
@@ -253,18 +261,20 @@ int main() {
                         if (on[6] > 23) {
                             on[6] = 0;
                         }
-                        eeprom_write_byte ((uint8_t*)12, on[6]);
+                        eeprom_write_byte ((uint8_t*)6, on[6]);
                     }
                     if(set == set_second) {
                         on[7]++;
                         if (on[7] > 59) {
                             on[7] = 0;
                         }
-                        eeprom_write_byte ((uint8_t*)13, on[7]);
+                        eeprom_write_byte ((uint8_t*)7, on[7]);
                     }
                     if(set == set_both) {
                         if (dayStatus[3] == d_day) {
                             dayStatus[3] = d_night;
+                        } else if (dayStatus[3] == d_night) {
+                            dayStatus[3] = d_off;
                         } else {
                             dayStatus[3] = d_day;
                         }
@@ -272,71 +282,57 @@ int main() {
                     }
                     break;
 
-                case show_offTime1:
+                case show_onTime5:
                     if(set == set_first) {
-                        off[0]++;
-                        if (off[0] > 23) {
-                            off[0] = 0;
+                        on[8]++;
+                        if (on[8] > 23) {
+                            on[8] = 0;
                         }
-                        eeprom_write_byte ((uint8_t*)2, off[0]);
+                        eeprom_write_byte ((uint8_t*)8, on[8]);
                     }
                     if(set == set_second) {
-                        off[1]++;
-                        if (off[1] > 59) {
-                            off[1] = 0;
+                        on[9]++;
+                        if (on[9] > 59) {
+                            on[9] = 0;
                         }
-                        eeprom_write_byte ((uint8_t*)3, off[1]);
+                        eeprom_write_byte ((uint8_t*)9, on[9]);
+                    }
+                    if(set == set_both) {
+                        if (dayStatus[4] == d_day) {
+                            dayStatus[4] = d_night;
+                        } else if (dayStatus[4] == d_night) {
+                            dayStatus[4] = d_off;
+                        } else {
+                            dayStatus[4] = d_day;
+                        }
+                        eeprom_write_byte ((uint8_t*)STATUS_EEPROM_POS + 5, (uint8_t)dayStatus[4]);
                     }
                     break;
 
-                case show_offTime2:
+                case show_onTime6:
                     if(set == set_first) {
-                        off[2]++;
-                        if (off[2] > 23) {
-                            off[2] = 0;
+                        on[10]++;
+                        if (on[10] > 23) {
+                            on[10] = 0;
                         }
-                        eeprom_write_byte ((uint8_t*)6, off[2]);
+                        eeprom_write_byte ((uint8_t*)10, on[10]);
                     }
                     if(set == set_second) {
-                        off[3]++;
-                        if (off[3] > 59) {
-                            off[3] = 0;
+                        on[11]++;
+                        if (on[11] > 59) {
+                            on[11] = 0;
                         }
-                        eeprom_write_byte ((uint8_t*)7, off[3]);
+                        eeprom_write_byte ((uint8_t*)11, on[11]);
                     }
-                    break;
-
-                case show_offTime3:
-                    if(set == set_first) {
-                        off[4]++;
-                        if (off[4] > 23) {
-                            off[4] = 0;
+                    if(set == set_both) {
+                        if (dayStatus[5] == d_day) {
+                            dayStatus[5] = d_night;
+                        } else if (dayStatus[5] == d_night) {
+                            dayStatus[5] = d_off;
+                        } else {
+                            dayStatus[5] = d_day;
                         }
-                        eeprom_write_byte ((uint8_t*)10, off[4]);
-                    }
-                    if(set == set_second) {
-                        off[5]++;
-                        if (off[5] > 59) {
-                            off[5] = 0;
-                        }
-                        eeprom_write_byte ((uint8_t*)11, off[5]);
-                    }
-                    break;
-
-                case show_offTime4:
-                    if(set == set_first) {
-                        off[6]++;
-                        if (off[6] > 23) {
-                            off[6] = 0;
-                        }
-                        eeprom_write_byte ((uint8_t*)14, off[6]);
-                    }
-                    if(set == set_second) {
-                        off[7]++;
-                        if (off[7] > 59) {
-                            off[7] = 0;
-                        }
-                        eeprom_write_byte ((uint8_t*)15, off[7]);
+                        eeprom_write_byte ((uint8_t*)STATUS_EEPROM_POS + 6, (uint8_t)dayStatus[5]);
                     }
                     break;
                 }
@@ -371,22 +367,13 @@ int main() {
             case show_onTime2:
             case show_onTime3:
             case show_onTime4:
+            case show_onTime5:
+            case show_onTime6:
                 set++;
                 if (set == set_end) {
                     set = set_none;
                 }
                 break;
-
-            case show_offTime1:
-            case show_offTime2:
-            case show_offTime3:
-            case show_offTime4:
-                set++;
-                if (set == set_both) {
-                    set = set_none;
-                }
-                break;
-
             case show_year:
                 if (set == set_both) {
                     set = set_none;
@@ -458,34 +445,35 @@ ISR(TIMER1_OVF_vect) {
         tempCounter = 0;
     }
 
+
     // timer switch
     if (switchStatus == switch_auto) {
         int t = (hour * 60) + minute;
         unsigned int i, j;
-        unsigned int st = false;
-        unsigned int daySt = d_day;
 
         j = 0;
-        for (i = 0; i < 7; i = i + 2) {
-            int on_ = (on[i] * 60) + on[i + 1];
-            int off_ = (off[i] * 60) + off[i + 1];
-            if (t >= on_ && t <= off_) {
-                st = true;
-                daySt = dayStatus[j];
-                break;
+        for (i = 0; i < 11; i = i + 2) {
+            int on_;
+            if (i == 0) {
+                daySt = dayStatus[5];
+            } else {
+                on_ = (on[i] * 60) + on[i + 1];
+                if (t > on_) {
+                    daySt = dayStatus[j];
+                }
             }
             j++;
         }
 
         if (daySt == d_day) { // day
-            PORTC |= (1 << PC0);
-        } else {               // night
-            PORTC &= ~(1 << PC0);
-        }
-        if (st) {
             PORTC |= (1 << PC1);
-        } else {
+            PORTC |= (1 << PC0);
+        } else if (daySt == d_night) { // night
+            PORTC |= (1 << PC1);
+            PORTC &= ~(1 << PC0);
+        } else { // off
             PORTC &= ~(1 << PC1);
+            PORTC &= ~(1 << PC0);
         }
     }
     if (switchStatus == switch_off) {
@@ -506,7 +494,7 @@ ISR(TIMER1_OVF_vect) {
     // and reset state due inactivity
     changeStateCounter++;
     if (show == show_time) {
-        if (changeStateCounter == 300) {
+        if (changeStateCounter == 200) {
             show = show_date;
             set = set_none;
             changeStateCounter = 0;
@@ -530,18 +518,20 @@ ISR(TIMER1_OVF_vect) {
  * Timer Overflow for update display
  */
 ISR(TIMER0_OVF_vect) {
-    unsigned int position = 2;
+    unsigned char position = 0b0100;
     char s[4];
+
+    //show = show_temperature;
 
     switch (show) {
     case show_time:
         sprintf (s, "%02d%02d", hour, minute);
-        position = 2;
+        position = 0b0100;
         PrintChr(s);
         break;
 
     case show_switch:
-        position = 5;
+        position = 0b0000;
         if (switchStatus == switch_off) {
             PrintChr("L-Of");
         }
@@ -559,7 +549,7 @@ ISR(TIMER0_OVF_vect) {
     case show_date:
         sprintf (s, "%02d%02d", day, month);
         showDot = true;
-        position = 2;
+        position = 0b0100;
         PrintChr(s);
         break;
 
@@ -570,25 +560,27 @@ ISR(TIMER0_OVF_vect) {
             sprintf (s, "%03dC", temperature);
         }
         showDot = true;
-        position = 2;
+        position = 0b0100;
         PrintChr(s);
         break;
 
     case show_year:
         sprintf (s, "20%02d", year);
         showDot = false;
-        position = 5;
+        position = 0b0000;
         PrintChr(s);
         break;
 
     case show_onTime1:
         showDot = true;
-        position = 3;
+        position = 0b1000;
         if (set == set_both) {
             if (dayStatus[0] == d_day) {
                 PrintChr("S-dA");
-            } else {
+            } else if (dayStatus[0] == d_night) {
                 PrintChr("S-ni");
+            } else {
+                PrintChr("S-Of");
             }
         } else {
             sprintf (s, "%02d%02d", on[0], on[1]);
@@ -598,12 +590,14 @@ ISR(TIMER0_OVF_vect) {
 
     case show_onTime2:
         showDot = true;
-        position = 2;
+        position = 0b0100;
         if (set == set_both) {
             if (dayStatus[1] == d_day) {
                 PrintChr("S-dA");
-            } else {
+            } else if (dayStatus[1] == d_night) {
                 PrintChr("S-ni");
+            } else {
+                PrintChr("S-Of");
             }
         } else {
             sprintf (s, "%02d%02d", on[2], on[3]);
@@ -613,12 +607,14 @@ ISR(TIMER0_OVF_vect) {
 
     case show_onTime3:
         showDot = true;
-        position = 1;
+        position = 0b0010;
         if (set == set_both) {
             if (dayStatus[2] == d_day) {
                 PrintChr("S-dA");
-            } else {
+            } else if (dayStatus[2] == d_night) {
                 PrintChr("S-ni");
+            } else {
+                PrintChr("S-Of");
             }
         } else {
             sprintf (s, "%02d%02d", on[4], on[5]);
@@ -628,12 +624,14 @@ ISR(TIMER0_OVF_vect) {
 
     case show_onTime4:
         showDot = true;
-        position = 0;
+        position = 0b0000;
         if (set == set_both) {
             if (dayStatus[3] == d_day) {
                 PrintChr("S-dA");
-            } else {
+            } else if (dayStatus[3] == d_night) {
                 PrintChr("S-ni");
+            } else {
+                PrintChr("S-Of");
             }
         } else {
             sprintf (s, "%02d%02d", on[6], on[7]);
@@ -641,32 +639,38 @@ ISR(TIMER0_OVF_vect) {
         }
         break;
 
-    case show_offTime1:
+    case show_onTime5:
         showDot = true;
-        position = 3;
-        sprintf (s, "%02d%02d", off[0], off[1]);
-        PrintChr(s);
+        position = 0b1111;
+        if (set == set_both) {
+            if (dayStatus[4] == d_day) {
+                PrintChr("S-dA");
+            } else if (dayStatus[4] == d_night) {
+                PrintChr("S-ni");
+            } else {
+                PrintChr("S-Of");
+            }
+        } else {
+            sprintf (s, "%02d%02d", on[8], on[9]);
+            PrintChr(s);
+        }
         break;
 
-    case show_offTime2:
+    case show_onTime6:
         showDot = true;
-        position = 2;
-        sprintf (s, "%02d%02d", off[2], off[3]);
-        PrintChr(s);
-        break;
-
-    case show_offTime3:
-        showDot = true;
-        position = 1;
-        sprintf (s, "%02d%02d", off[4], off[5]);
-        PrintChr(s);
-        break;
-
-    case show_offTime4:
-        showDot = true;
-        position = 0;
-        sprintf (s, "%02d%02d", off[6], off[7]);
-        PrintChr(s);
+        position = 0b0111;
+        if (set == set_both) {
+            if (dayStatus[5] == d_day) {
+                PrintChr("S-dA");
+            } else if (dayStatus[5] == d_night) {
+                PrintChr("S-ni");
+            } else {
+                PrintChr("S-Of");
+            }
+        } else {
+            sprintf (s, "%02d%02d", on[10], on[11]);
+            PrintChr(s);
+        }
         break;
     }
 
@@ -719,7 +723,7 @@ ISR(TIMER0_OVF_vect) {
     }
 
     // display string
-    if (showDot && i == position) {
+    if (showDot && bitIsSet(position, i)) {
         SevenSegmentChar(digitsc[i], 1);
     } else {
         SevenSegmentChar(digitsc[i], 0);
@@ -882,6 +886,11 @@ unsigned int debounce(volatile uint8_t *port, uint8_t pin) {
     return 0;
 }
 
+
+inline unsigned char bitIsSet(unsigned char byte, unsigned int bit)  {
+    return byte & (1 << bit);
+}
+
 void readDataFromEeprom() {
     unsigned int hour;
     unsigned int min;
@@ -895,84 +904,85 @@ void readDataFromEeprom() {
     if (min > 59) { min = 0; }
     on[1] = min;
 
-    hour = eeprom_read_byte((uint8_t*)2);
-    if (hour > 23) { hour = 0; }
-    off[0] = hour;
-
-    min = eeprom_read_byte((uint8_t*)3);
-    if (min > 59) { min = 0; }
-    off[1] = min;
-
     // sequence 2
-    hour = eeprom_read_byte((uint8_t*)4);
+    hour = eeprom_read_byte((uint8_t*)2);
     if (hour > 23) { hour = 0; }
     on[2] = hour;
 
-    min = eeprom_read_byte((uint8_t*)5);
+    min = eeprom_read_byte((uint8_t*)3);
     if (min > 59) { min = 0; }
     on[3] = min;
 
-    hour = eeprom_read_byte((uint8_t*)6);
-    if (hour > 23) { hour = 0; }
-    off[2] = hour;
-
-    min = eeprom_read_byte((uint8_t*)7);
-    if (min > 59) { min = 0; }
-    off[3] = min;
-
     // sequence 3
-    hour = eeprom_read_byte((uint8_t*)8);
+    hour = eeprom_read_byte((uint8_t*)4);
     if (hour > 23) { hour = 0; }
     on[4] = hour;
 
-    min = eeprom_read_byte((uint8_t*)9);
+    min = eeprom_read_byte((uint8_t*)5);
     if (min > 59) { min = 0; }
     on[5] = min;
 
-    hour = eeprom_read_byte((uint8_t*)10);
-    if (hour > 23) { hour = 0; }
-    off[4] = hour;
-
-    min = eeprom_read_byte((uint8_t*)11);
-    if (min > 59) { min = 0; }
-    off[5] = min;
-
     // sequence 4
-    hour = eeprom_read_byte((uint8_t*)12);
+    hour = eeprom_read_byte((uint8_t*)6);
     if (hour > 23) { hour = 0; }
     on[6] = hour;
 
-    min = eeprom_read_byte((uint8_t*)13);
+    min = eeprom_read_byte((uint8_t*)7);
     if (min > 59) { min = 0; }
     on[7] = min;
 
-    hour = eeprom_read_byte((uint8_t*)14);
+    // sequence 5
+    hour = eeprom_read_byte((uint8_t*)8);
     if (hour > 23) { hour = 0; }
-    off[6] = hour;
+    on[8] = hour;
 
-    min = eeprom_read_byte((uint8_t*)15);
+    min = eeprom_read_byte((uint8_t*)9);
     if (min > 59) { min = 0; }
-    off[7] = min;
+    on[9] = min;
+
+    // sequence 6
+    hour = eeprom_read_byte((uint8_t*)10);
+    if (hour > 23) { hour = 0; }
+    on[10] = hour;
+
+    min = eeprom_read_byte((uint8_t*)11);
+    if (min > 59) { min = 0; }
+    on[11] = min;
 
     // save switch and day status
-    switchStatus = eeprom_read_byte((uint8_t*)STATUS_EEPROM_POS);
+    __EEGET(switchStatus, (uint8_t*)STATUS_EEPROM_POS);
     if (switchStatus > 5) {
         switchStatus = 0;
     }
-    dayStatus[0] = eeprom_read_byte((uint8_t*)STATUS_EEPROM_POS + 1);
-    if (dayStatus[0] > 1) {
+
+    __EEGET(dayStatus[0], (uint8_t*)STATUS_EEPROM_POS + 1);
+    if (dayStatus[0] > 2) {
         dayStatus[0] = 0;
     }
-    dayStatus[1] = eeprom_read_byte((uint8_t*)STATUS_EEPROM_POS + 2);
-    if (dayStatus[1] > 1) {
+
+    __EEGET(dayStatus[1], (uint8_t*)STATUS_EEPROM_POS + 2);
+    if (dayStatus[1] > 2) {
         dayStatus[1] = 0;
     }
-    dayStatus[2] = eeprom_read_byte((uint8_t*)STATUS_EEPROM_POS + 3);
-    if (dayStatus[2] > 1) {
+
+    __EEGET(dayStatus[2], (uint8_t*)STATUS_EEPROM_POS + 3);
+    if (dayStatus[2] > 2) {
         dayStatus[2] = 0;
     }
-    dayStatus[3] = eeprom_read_byte((uint8_t*)STATUS_EEPROM_POS + 4);
-    if (dayStatus[3] > 1) {
+
+    __EEGET(dayStatus[3], (uint8_t*)STATUS_EEPROM_POS + 4);
+    if (dayStatus[3] > 2) {
         dayStatus[3] = 0;
+    }
+
+    __EEGET(dayStatus[4], (uint8_t*)STATUS_EEPROM_POS + 5);
+    if (dayStatus[4] > 2) {
+        dayStatus[4] = 0;
+    }
+
+    __EEGET(dayStatus[5], (uint8_t*)STATUS_EEPROM_POS + 6);
+    //dayStaus[5] = eeprom_read_byte((uint8_t*)STATUS_EEPROM_POS + 6);
+    if (dayStatus[5] > 2) {
+        dayStatus[5] = 0;
     }
 }
