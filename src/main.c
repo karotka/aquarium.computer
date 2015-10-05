@@ -33,6 +33,7 @@ volatile unsigned int temperature = 0;
 volatile char digitsc[DIGITS];
 
 volatile uint8_t on[SWITCH_COUNT];
+volatile uint8_t co2[4];
 
 volatile uint8_t switchStatus = 0;
 volatile unsigned int changeStateCounter = 0;
@@ -73,6 +74,8 @@ enum {
     show_onTime4,
     show_onTime5,
     show_onTime6,
+    show_co2on,
+    show_co2off,
     show_end
 };
 
@@ -127,6 +130,7 @@ int main() {
 
             if (set) {
                 timer1stop();
+
                 switch (show) {
                 case show_time:
                     if(set == set_second) {
@@ -164,6 +168,7 @@ int main() {
                         write(month, month_RTC);
                     }
                     break;
+
                 case show_year:
                     if(set == set_both) {
                         year++;
@@ -335,6 +340,41 @@ int main() {
                         eeprom_write_byte ((uint8_t*)STATUS_EEPROM_POS + 6, (uint8_t)dayStatus[5]);
                     }
                     break;
+
+                case show_co2on:
+                    if(set == set_first) {
+                        co2[0]++;
+                        if (co2[0] > 23) {
+                            co2[0] = 0;
+                        }
+                        eeprom_write_byte ((uint8_t*)12, co2[0]);
+                    }
+                    if(set == set_second) {
+                        co2[1]++;
+                        if (co2[1] > 59) {
+                            co2[1] = 0;
+                        }
+                        eeprom_write_byte ((uint8_t*)13, co2[1]);
+                    }
+                    break;
+
+                case show_co2off:
+                    if(set == set_first) {
+                        co2[2]++;
+                        if (co2[2] > 23) {
+                            co2[2] = 0;
+                        }
+                        eeprom_write_byte ((uint8_t*)14, co2[2]);
+                    }
+                    if(set == set_second) {
+                        co2[3]++;
+                        if (co2[3] > 59) {
+                            co2[3] = 0;
+                        }
+                        eeprom_write_byte ((uint8_t*)15, co2[3]);
+                    }
+                    break;
+
                 }
                 timer1start();
 
@@ -356,6 +396,8 @@ int main() {
             switch (show) {
             case show_time:
             case show_date:
+            case show_co2on:
+            case show_co2off:
                 set++;
                 if (set == set_both) {
                     set = set_none;
@@ -374,6 +416,7 @@ int main() {
                     set = set_none;
                 }
                 break;
+
             case show_year:
                 if (set == set_both) {
                     set = set_none;
@@ -440,11 +483,10 @@ ISR(TIMER1_OVF_vect) {
     }
 
     tempCounter++;
-    if (tempCounter == 200) {
+    if (tempCounter == 500) {
         temperature = getTemperature();
         tempCounter = 0;
     }
-
 
     // timer switch
     if (switchStatus == switch_auto) {
@@ -455,7 +497,7 @@ ISR(TIMER1_OVF_vect) {
         for (i = 0; i < 11; i = i + 2) {
             int on_;
             if (i == 0) {
-                daySt = dayStatus[5];
+                daySt = dayStatus[(SWITCH_COUNT / 2) - 1];
             } else {
                 on_ = (on[i] * 60) + on[i + 1];
                 if (t > on_) {
@@ -465,6 +507,7 @@ ISR(TIMER1_OVF_vect) {
             j++;
         }
 
+        // lights
         if (daySt == d_day) { // day
             PORTC |= (1 << PC1);
             PORTC |= (1 << PC0);
@@ -475,7 +518,17 @@ ISR(TIMER1_OVF_vect) {
             PORTC &= ~(1 << PC1);
             PORTC &= ~(1 << PC0);
         }
+
+        // CO2
+        int co2on  = (co2[0] * 60) + co2[1];
+        int co2off = (co2[2] * 60) + co2[3];
+        if (co2on <= t && t < co2off) {
+            PORTC |= (1 << PC2);
+        } else {
+            PORTC &= ~(1 << PC2);
+        }
     }
+
     if (switchStatus == switch_off) {
         PORTC &= ~(1 << PC1);
         PORTC &= ~(1 << PC0);
@@ -494,7 +547,7 @@ ISR(TIMER1_OVF_vect) {
     // and reset state due inactivity
     changeStateCounter++;
     if (show == show_time) {
-        if (changeStateCounter == 200) {
+        if (changeStateCounter == 400) {
             show = show_date;
             set = set_none;
             changeStateCounter = 0;
@@ -506,7 +559,7 @@ ISR(TIMER1_OVF_vect) {
             changeStateCounter = 0;
         }
     } else {
-        if (changeStateCounter == 400) {
+        if (changeStateCounter == 50) {
             show = show_time;
             set = set_none;
             changeStateCounter = 0;
@@ -518,6 +571,7 @@ ISR(TIMER1_OVF_vect) {
  * Timer Overflow for update display
  */
 ISR(TIMER0_OVF_vect) {
+
     unsigned char position = 0b0100;
     char s[4];
 
@@ -672,6 +726,31 @@ ISR(TIMER0_OVF_vect) {
             PrintChr(s);
         }
         break;
+
+    case show_co2on:
+        if (set == set_first || set == set_second) {
+            sprintf (s, "%02d%02d", co2[0], co2[1]);
+            PrintChr(s);
+            showDot = true;
+            position = 0b0100;
+        } else {
+            showDot = true;
+            position = 0b0010;
+            PrintChr("CO2O");
+        }
+        break;
+
+    case show_co2off:
+        showDot = true;
+        if (set == set_first || set == set_second) {
+            sprintf (s, "%02d%02d", co2[2], co2[3]);
+            position = 0b0100;
+            PrintChr(s);
+        } else {
+            position = 0b0010;
+            PrintChr("CO2F");
+        }
+        break;
     }
 
     PORTB &= ~(1 << PB2);//0
@@ -775,6 +854,9 @@ void SevenSegmentChar(char ch, uint8_t dp) {
     case '0':
         SEVEN_SEGMENT_PORT=0b11111100;
         break;
+    case 'O':
+        SEVEN_SEGMENT_PORT=0b11111100;
+        break;
     case '1':
         SEVEN_SEGMENT_PORT=0b01100000;
         break;
@@ -808,8 +890,8 @@ void SevenSegmentChar(char ch, uint8_t dp) {
     case 'C':
         SEVEN_SEGMENT_PORT=0b10011100;
         break;
-    case 'O':
-        SEVEN_SEGMENT_PORT=0b11111100;
+    case 'F':
+        SEVEN_SEGMENT_PORT=0b10001110;
         break;
     case 'L':
         SEVEN_SEGMENT_PORT=0b00011100;
@@ -864,7 +946,7 @@ void SevenSegmentChar(char ch, uint8_t dp) {
 
 void portConfig(void) {
     // Port c as output 3 as input
-    DDRC  = 0b0000011;
+    DDRC  = 0b0000111;
     PORTC = 0x00;
 
     // Port b 1, 0 as input
@@ -885,7 +967,6 @@ unsigned int debounce(volatile uint8_t *port, uint8_t pin) {
     }
     return 0;
 }
-
 
 inline unsigned char bitIsSet(unsigned char byte, unsigned int bit)  {
     return byte & (1 << bit);
@@ -949,6 +1030,25 @@ void readDataFromEeprom() {
     if (min > 59) { min = 0; }
     on[11] = min;
 
+    // co2 on
+    hour = eeprom_read_byte((uint8_t*)12);
+    if (hour > 23) { hour = 0; }
+    co2[0] = hour;
+
+    min = eeprom_read_byte((uint8_t*)13);
+    if (min > 59) { min = 0; }
+    co2[1] = min;
+
+    // co2 off
+    hour = eeprom_read_byte((uint8_t*)14);
+    if (hour > 23) { hour = 0; }
+    co2[2] = hour;
+
+    min = eeprom_read_byte((uint8_t*)15);
+    if (min > 59) { min = 0; }
+    co2[3] = min;
+
+
     // save switch and day status
     __EEGET(switchStatus, (uint8_t*)STATUS_EEPROM_POS);
     if (switchStatus > 5) {
@@ -981,7 +1081,6 @@ void readDataFromEeprom() {
     }
 
     __EEGET(dayStatus[5], (uint8_t*)STATUS_EEPROM_POS + 6);
-    //dayStaus[5] = eeprom_read_byte((uint8_t*)STATUS_EEPROM_POS + 6);
     if (dayStatus[5] > 2) {
         dayStatus[5] = 0;
     }

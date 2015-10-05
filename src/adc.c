@@ -24,23 +24,23 @@ inline uint16_t ADC_get(void) {
     return (uint16_t)(ADC);             // return value
 }
 
-float getTemperature() {
-    float Vout = 0;          // output voltage of voltage divider
-    unsigned int R2 = 4500;  // fixed resistor - lower increase temp
+unsigned int getTemperature() {
     float Rth;               // actual thermistor resistance
+    float Vout = 0;          // output voltage of voltage divider
     float Tn = 25 + 273.15;  // nominal temperature in degrees Celsius, convert to degrees Kelvin
+    float steinhart;
+    unsigned int R2 = 4500;  // fixed resistor - lower increase temp
     unsigned int Bth = 3950; // B25/100 device specific constant - lower val. bigger range
     unsigned int i;
 
-    for (i = 0 ; i < 8; i++) {
+    for (i = 0 ; i < 10; i++) {
         Vout += (float)ADC_get() * ADCRESOLUTION;
     }
-    Vout = Vout / 8.0;
+    Vout = Vout / 10.0;
 
     // calculate actual thermistor resistance
     Rth = ((AVCC * R2) - (Vout * R2)) / Vout;
 
-    float steinhart;
     steinhart = Rth / 100000;     // (R/Ro)
     steinhart = log(steinhart);   // ln(R/Ro)
     steinhart /= Bth;             // 1/B * ln(R/Ro)
